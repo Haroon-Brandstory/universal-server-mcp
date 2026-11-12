@@ -24,4 +24,23 @@ describe("ssrf guard", () => {
     const r = await assertSafeUrl("https://8.8.8.8/", cfg, []);
     assert.equal(r.ok, true);
   });
+
+  it("allows public Cloudflare IPv6 (not false-private)", async () => {
+    const r = await assertSafeUrl("https://[2606:4700::6810:e684]/", cfg, []);
+    assert.equal(r.ok, true, r.reason);
+  });
+
+  it("allows public AWS-like IPv6 (not false-private)", async () => {
+    const r = await assertSafeUrl(
+      "https://[2600:1f1c:d8:5f00:bb60:3b1d:7b34:46b3]/",
+      cfg,
+      []
+    );
+    assert.equal(r.ok, true, r.reason);
+  });
+
+  it("still blocks IPv6 ULA", async () => {
+    const r = await assertSafeUrl("https://[fd12:3456:789a::1]/", cfg, []);
+    assert.equal(r.ok, false);
+  });
 });

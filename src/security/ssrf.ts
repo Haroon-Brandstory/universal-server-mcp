@@ -13,6 +13,8 @@ function ipv4ToInt(ip: string): number {
 }
 
 function isPrivateIPv4(ip: string): boolean {
+  // Never run dotted-quad math on IPv6 — Number("2606:…")→NaN→0≡0.0.0.0 (false private).
+  if (isIP(ip) !== 4) return false;
   const n = ipv4ToInt(ip);
   const ranges: Array<[number, number]> = [
     [ipv4ToInt("10.0.0.0"), ipv4ToInt("10.255.255.255")],
@@ -22,6 +24,17 @@ function isPrivateIPv4(ip: string): boolean {
     [ipv4ToInt("0.0.0.0"), ipv4ToInt("0.255.255.255")],
   ];
   return ranges.some(([a, b]) => n >= a && n <= b);
+}
+
+/** fc00::/7 unique local addresses */
+function isUniqueLocalIPv6(ip: string): boolean {
+  if (isIP(ip) !== 6) return false;
+  const first = ip.toLowerCase().split(":")[0] || "";
+  // Expand omitted zeros: "fc00", "fd12", also "fc" only if full hextet starts with fc/fd
+  if (first.length === 0) return false;
+  const n = parseInt(first.padEnd(4, "0").slice(0, 4), 16);
+  if (!Number.isFinite(n)) return false;
+  return (n & 0xfe00) === 0xfc00;
 }
 
 function isLoopback(ip: string): boolean {
@@ -104,8 +117,7 @@ function checkIp(ip: string, cfg: SsrfConfig): SsrfResult {
   if (cfg.block_private && isPrivateIPv4(ip)) {
     return { ok: false, reason: `Blocked private IP: ${ip}` };
   }
-  // IPv6 unique local
-  if (cfg.block_private && (ip.toLowerCase().startsWith("fc") || ip.toLowerCase().startsWith("fd"))) {
+  if (cfg.block_private && isUniqueLocalIPv6(ip)) {
     return { ok: false, reason: `Blocked ULA IPv6: ${ip}` };
   }
   return { ok: true };
