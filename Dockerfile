@@ -1,14 +1,15 @@
 # Production MCP gateway — non-root, minimal attack surface.
 # Do not bake secrets into the image. Mount config + data + secrets at runtime.
-FROM node:20-bookworm-slim AS build
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN npm ci
 COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build && npm prune --omit=dev
 
-FROM node:20-bookworm-slim AS runtime
+FROM node:22-bookworm-slim AS runtime
 ENV NODE_ENV=production \
     MCP_TRANSPORT=http \
     MCP_HTTP_HOST=0.0.0.0 \

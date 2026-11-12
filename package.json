@@ -18,7 +18,7 @@
     "dev": "tsx src/index.ts",
     "dev:http": "MCP_TRANSPORT=http tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test 'src/**/*.test.ts'",
+    "test": "node scripts/run-tests.mjs",
     "ci": "npm run typecheck && npm test && npm run build",
     "docker:build": "docker build -t global-server-mcp:local .",
     "docker:up": "docker compose up -d --build",

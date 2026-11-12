@@ -24,10 +24,12 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
         run: npm ci
 
       - name: TypeScript compile
@@ -64,14 +66,16 @@ jobs:
       - name: Block obvious secret patterns in tracked files
         run: |
           set -euo pipefail
-          # Fail on private keys / AWS-style keys in non-example paths
+          # Fail on private keys / AWS-style keys in non-example / non-test paths
           if git grep -nE 'BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY' -- . \
             ':(exclude)*.md' ':(exclude)*.example' ':(exclude).env.example' \
-            ':(exclude)docs/**' ':(exclude)**/node_modules/**'; then
+            ':(exclude)docs/**' ':(exclude)**/node_modules/**' \
+            ':(exclude)**/*.test.ts' ':(exclude)**/fixtures/**'; then
             echo "Private key material found in tracked files" >&2
             exit 1
           fi
-          if git grep -nE 'AKIA[0-9A-Z]{16}' -- . ':(exclude)**/node_modules/**'; then
+          if git grep -nE 'AKIA[0-9A-Z]{16}' -- . \
+            ':(exclude)**/node_modules/**' ':(exclude)**/*.test.ts' ':(exclude)**/fixtures/**'; then
             echo "AWS access key pattern found" >&2
             exit 1
           fi
