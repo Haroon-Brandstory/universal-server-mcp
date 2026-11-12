@@ -63,29 +63,64 @@ servers:
         - strapi
         - postgres
 
-  # Example SSH shape (disabled). Operator fills host + env key paths.
-  # Does not auto-install agents or rewrite remote SSH config.
-  - id: example-staging-ssh
-    label: Example staging (disabled template)
+  # --- Real VPS (SSH) — set enabled: true after host + keys ready ---
+  # Render: set MCP_SSH_KEY_FE_PEM + MCP_SSH_KNOWN_HOSTS_FE (entrypoint writes files).
+  # Or set MCP_SSH_KEY_FE_PATH / MCP_SSH_KNOWN_HOSTS_FE_PATH to absolute file paths.
+  - id: brandstory-fe-staging
+    label: Brandstory FE staging VPS
     project_id: brandstory-fe
     environment: staging
     enabled: false
     connection:
       method: ssh
-      host: staging.example.com
+      host: REPLACE_FE_VPS_HOST
       port: 22
-      user: mcp-monitor
-      private_key_path_env: MCP_SERVER_STAGING_KEY_PATH
-      known_hosts_path_env: MCP_SERVER_STAGING_KNOWN_HOSTS
+      user: mcp-ops
+      private_key_path_env: MCP_SSH_KEY_FE_PATH
+      known_hosts_path_env: MCP_SSH_KNOWN_HOSTS_FE_PATH
     services:
       - nginx
       - pm2
       - nextjs
+      - systemd
     approved_maintenance:
       - cache.clear
       - nginx.reload
     monitoring:
       ssl_hosts:
-        - staging.example.com
+        - REPLACE_FE_PUBLIC_HOST
       health_urls:
-        - https://staging.example.com/api/health
+        - https://REPLACE_FE_PUBLIC_HOST/api/health
+      log_sources:
+        - nginx
+        - pm2
+
+  - id: brandstory-be-staging
+    label: Brandstory BE / Strapi staging VPS
+    project_id: brandstory-be
+    environment: staging
+    enabled: false
+    connection:
+      method: ssh
+      host: REPLACE_BE_VPS_HOST
+      port: 22
+      user: mcp-ops
+      private_key_path_env: MCP_SSH_KEY_BE_PATH
+      known_hosts_path_env: MCP_SSH_KNOWN_HOSTS_BE_PATH
+    services:
+      - nginx
+      - pm2
+      - strapi
+      - postgres
+      - systemd
+    approved_maintenance:
+      - cache.clear
+      - nginx.reload
+    monitoring:
+      ssl_hosts:
+        - REPLACE_BE_PUBLIC_HOST
+      health_urls:
+        - https://REPLACE_BE_PUBLIC_HOST/_health
+      log_sources:
+        - strapi
+        - nginx

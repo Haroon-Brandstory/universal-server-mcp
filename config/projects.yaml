@@ -16,6 +16,7 @@ projects:
       - brandstorydigital/global-brandstory
     server_ids:
       - brandstory-fe-dev
+      - brandstory-fe-staging
     deploy_project_id: brandstory-fe-deploy
     security_target_ids:
       - brandstory-fe-sec
@@ -54,6 +55,7 @@ projects:
       - brandstorydigital/bsd-strapi
     server_ids:
       - brandstory-be-dev
+      - brandstory-be-staging
     database_ids:
       - brandstory-be-pg-dev
     deploy_project_id: brandstory-be-deploy

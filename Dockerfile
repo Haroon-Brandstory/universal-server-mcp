@@ -22,11 +22,11 @@ ENV NODE_ENV=production \
 WORKDIR /app
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates tini \
+  && apt-get install -y --no-install-recommends ca-certificates tini openssh-client \
   && rm -rf /var/lib/apt/lists/* \
   && groupadd --gid 10001 mcp \
   && useradd --uid 10001 --gid mcp --shell /usr/sbin/nologin --create-home mcp \
-  && mkdir -p /data/logs /app/config \
+  && mkdir -p /data/logs /data/secrets /app/config \
   && chown -R mcp:mcp /data /app
 
 COPY --from=build --chown=mcp:mcp /app/package.json /app/package-lock.json ./
