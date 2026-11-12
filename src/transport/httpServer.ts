@@ -31,21 +31,28 @@ type TransportSession = {
 const IDLE_MS = 30 * 60_000;
 const MAX_SESSIONS = 100;
 
-/** Tunnel / local Host suffixes allowed when MCP_ALLOW_TUNNEL_HOSTS=1 */
+/** Tunnel / PaaS Host suffixes allowed when MCP_ALLOW_TUNNEL_HOSTS=1 */
 const TUNNEL_HOST_SUFFIXES = [
   ".ngrok-free.dev",
   ".ngrok-free.app",
   ".ngrok.app",
   ".ngrok.io",
   ".trycloudflare.com",
+  ".onrender.com",
 ];
 
 function httpHost(): string {
-  return process.env.MCP_HTTP_HOST || "127.0.0.1";
+  // PaaS (Render/etc.) inject PORT — bind all interfaces unless overridden.
+  if (process.env.MCP_HTTP_HOST) return process.env.MCP_HTTP_HOST;
+  if (process.env.PORT) return "0.0.0.0";
+  return "127.0.0.1";
 }
 
 function httpPort(): number {
-  return Number(process.env.MCP_HTTP_PORT || 7337);
+  // Prefer platform PORT (Render), then explicit MCP_HTTP_PORT.
+  const raw = process.env.PORT || process.env.MCP_HTTP_PORT || "7337";
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 7337;
 }
 
 function explicitAllowedHosts(): string[] {
