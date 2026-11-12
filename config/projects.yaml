@@ -1,0 +1,75 @@
+# Universal project registry — add projects here without editing gateway core.
+# Merged into policy.projects by id (overlays fields). Secrets never live here.
+version: 1
+projects:
+  - id: brandstory-fe
+    name: Brandstory Frontend
+    description: Next.js marketing/app frontend
+    stack_profile: nextjs
+    allow_hosts:
+      - localhost
+      - 127.0.0.1
+      - "[::1]"
+    allow_paths:
+      - /Users/brandstorydigital/Documents/projects/work/global-brandstory
+    github_repos:
+      - brandstorydigital/global-brandstory
+    server_ids:
+      - brandstory-fe-dev
+    deploy_project_id: brandstory-fe-deploy
+    security_target_ids:
+      - brandstory-fe-sec
+    environments: [development, staging, production]
+    authorized_clients:
+      - local-dev
+      - oauth-remote
+      - global-server-mcp-grok
+    build:
+      network: none
+      approved_tasks:
+        - node.install
+        - node.build
+        - node.test
+        - node.lint
+        - node.typecheck
+        - node.file.test
+      approved_test_tasks:
+        - node.test
+        - node.file.test
+      resource_limits:
+        timeout_sec: 300
+        memory_mb: 2048
+
+  - id: brandstory-be
+    name: Brandstory Backend (Strapi)
+    description: Strapi CMS / API
+    stack_profile: strapi
+    allow_hosts:
+      - localhost
+      - 127.0.0.1
+      - "[::1]"
+    allow_paths:
+      - /Users/brandstorydigital/Documents/projects/work/bsd-strapi
+    github_repos:
+      - brandstorydigital/bsd-strapi
+    server_ids:
+      - brandstory-be-dev
+    database_ids:
+      - brandstory-be-pg-dev
+    deploy_project_id: brandstory-be-deploy
+    security_target_ids:
+      - brandstory-be-sec
+    environments: [development, staging, production]
+    authorized_clients:
+      - local-dev
+    build:
+      network: none
+      approved_tasks:
+        - node.install
+        - node.build
+        - node.test
+        - node.lint
+        - node.typecheck
+      resource_limits:
+        timeout_sec: 300
+        memory_mb: 2048

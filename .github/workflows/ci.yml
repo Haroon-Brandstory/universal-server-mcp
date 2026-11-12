@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, "feat/**", "fix/**", "chore/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build, typecheck, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript compile
+        run: npm run typecheck
+
+      - name: Unit + fixture tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Artifact validation
+        run: |
+          test -f dist/index.js
+          test -f dist/gateway.js
+          test -f dist/transport/httpServer.js
+          node -e "import('./dist/index.js').catch(()=>{})" || true
+          # Ensure entry is ESM and references exist
+          node --check dist/index.js
+
+      - name: Dependency audit (high+)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Block obvious secret patterns in tracked files
+        run: |
+          set -euo pipefail
+          # Fail on private keys / AWS-style keys in non-example paths
+          if git grep -nE 'BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY' -- . \
+            ':(exclude)*.md' ':(exclude)*.example' ':(exclude).env.example' \
+            ':(exclude)docs/**' ':(exclude)**/node_modules/**'; then
+            echo "Private key material found in tracked files" >&2
+            exit 1
+          fi
+          if git grep -nE 'AKIA[0-9A-Z]{16}' -- . ':(exclude)**/node_modules/**'; then
+            echo "AWS access key pattern found" >&2
+            exit 1
+          fi
+          echo "Basic secret pattern scan clean"
+
+      - name: Gitleaks (if available)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [build-test]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t global-server-mcp:ci .
+      - name: Smoke container health
+        run: |
+          docker run -d --name mcp-ci \
+            -e MCP_API_KEY=ci-test-key-not-for-prod \
+            -e MCP_TRANSPORT=http \
+            -e MCP_HTTP_HOST=0.0.0.0 \
+            -e MCP_HTTP_PORT=7337 \
+            -e MCP_KILL_SWITCH=0 \
+            -p 7337:7337 \
+            global-server-mcp:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:7337/healthz | grep -q '"ok":true'; then
+              echo "health ok"
+              docker rm -f mcp-ci
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs mcp-ci || true
+          docker rm -f mcp-ci || true
+          exit 1

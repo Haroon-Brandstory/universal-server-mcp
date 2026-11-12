@@ -1,0 +1,42 @@
+# Template — Next.js frontend project registry entry (copy into config/projects.yaml)
+# Replace OWNER/REPO, paths, server/db/deploy/security ids. Secrets stay in env.
+version: 1
+projects:
+  - id: example-nextjs-fe
+    name: Example Next.js Frontend
+    description: Next.js app on Linux VPS
+    stack_profile: nextjs
+    allow_hosts:
+      - localhost
+      - 127.0.0.1
+      - staging.example.com
+    allow_paths:
+      - /ABSOLUTE/PATH/TO/LOCAL/CHECKOUT
+    github_repos:
+      - OWNER/REPO
+    server_ids:
+      - example-fe-staging
+    deploy_project_id: example-fe-deploy
+    security_target_ids:
+      - example-fe-sec
+    environments: [development, staging, production]
+    authorized_clients:
+      - local-dev
+      - oauth-remote
+    build:
+      network: none
+      approved_tasks:
+        - node.install
+        - node.build
+        - node.test
+        - node.lint
+        - node.typecheck
+      approved_test_tasks:
+        - node.test
+      resource_limits:
+        timeout_sec: 300
+        memory_mb: 2048
+    # Operator notes (not consumed by gateway unless extended):
+    # runtime: node>=20
+    # package_manager: npm|pnpm|yarn (detect via lockfile)
+    # healthcheck_url: https://staging.example.com/api/health

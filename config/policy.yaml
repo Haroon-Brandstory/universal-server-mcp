@@ -1,0 +1,318 @@
+# Local development policy (default). Privileged tools for Cursor stdio via MCP_API_KEY.
+# Remote OAuth clients bind to oauth-remote (least privilege), never local-dev.
+version: 1
+environment: development
+kill_switch: false
+rate_limit_per_min: 60
+
+build:
+  enabled: true
+  runner: docker
+  allow_process_runner: true
+  work_root: ./data/build-workspaces
+  default_timeout_sec: 180
+  default_memory_mb: 1024
+  default_cpu: "1.0"
+  max_concurrent_jobs_per_principal: 2
+
+serverops:
+  enabled: true
+  servers_path: ./config/servers.yaml
+  require_maintenance_approval: true
+  maintenance_rate_limit_per_min: 5
+  default_timeout_sec: 30
+  max_log_bytes: 64000
+
+databaseops:
+  enabled: true
+  databases_path: ./config/databases.yaml
+  require_migration_approval: true
+  require_backup_before_destructive: true
+  allow_production_migrations: false
+  default_statement_timeout_ms: 5000
+  default_max_rows: 100
+  default_max_result_bytes: 64000
+  migration_rate_limit_per_min: 3
+
+securityops:
+  enabled: true
+  targets_path: ./config/security.yaml
+  findings_path: ./data/security-findings.json
+  allow_production_scans: false
+  force_mock_scanners: false
+  max_findings_per_scan: 200
+  scanner_timeout_sec: 120
+
+deployops:
+  enabled: true
+  deployments_path: ./config/deployments.yaml
+  history_path: ./data/deploy-history.json
+  allow_production_dispatch: false
+  force_mock_providers: false
+  require_ci_green: true
+  require_security_gate: true
+  approval_ttl_ms: 3600000
+  health_timeout_ms: 8000
+
+platform:
+  projects_path: ./config/projects.yaml
+  stack_profiles_path: ./config/stack-profiles.yaml
+  revoked_principal_ids: []
+  metrics_enabled: true
+
+projects:
+  - id: brandstory-fe
+    allow_hosts:
+      - localhost
+      - 127.0.0.1
+      - "[::1]"
+    allow_paths:
+      - /Users/brandstorydigital/Documents/projects/work/global-brandstory
+    github_repos:
+      - brandstorydigital/global-brandstory
+    build:
+      network: none
+      approved_tasks:
+        - node.install
+        - node.build
+        - node.test
+        - node.lint
+        - node.typecheck
+        - node.file.test
+      approved_test_tasks:
+        - node.test
+        - node.file.test
+      resource_limits:
+        timeout_sec: 300
+        memory_mb: 2048
+  - id: brandstory-be
+    allow_hosts:
+      - localhost
+      - 127.0.0.1
+      - "[::1]"
+    allow_paths:
+      - /Users/brandstorydigital/Documents/projects/work/bsd-strapi
+    github_repos:
+      - brandstorydigital/bsd-strapi
+    build:
+      network: none
+      approved_tasks:
+        - node.install
+        - node.build
+        - node.test
+        - node.lint
+        - node.typecheck
+      resource_limits:
+        timeout_sec: 300
+        memory_mb: 2048
+
+github:
+  deny_commit_branches: [main, master, production, prod, release]
+  feature_branch_pattern: "^(feat|fix|chore|docs|refactor|gitops)/[A-Za-z0-9._/-]+$"
+  require_write_approval: true
+
+oauth:
+  allowed_redirect_uris:
+    - https://grok.com/connectors-oauth-exchange-code/
+  default_principal_id: oauth-remote
+  client_principal_map:
+    global-server-mcp-grok: oauth-remote
+  allow_dynamic_registration: false
+
+principals:
+  - id: local-dev
+    api_key_env: MCP_API_KEY
+    roles: [operator]
+    projects: [brandstory-fe, brandstory-be]
+    allow_hosts: []
+    allow_paths: []
+    capabilities:
+      - http.request
+      - page.navigate
+      - page.snapshot
+      - page.click
+      - page.fill
+      - page.wait
+      - session.create
+      - session.close
+      - policy.explain
+      - audit.tail
+      - code.list
+      - code.read
+      - code.write
+      - code.edit
+      - code.search
+      - git.repo.list
+      - git.repo.info
+      - git.branch.list
+      - git.branch.create
+      - git.file.read
+      - git.diff
+      - git.commit
+      - git.pr.create
+      - git.pr.status
+      - git.ci.status
+      - git.approval.create
+      - build.detect_stack
+      - build.list_tasks
+      - build.run
+      - build.status
+      - build.logs
+      - build.test
+      - build.lint
+      - build.typecheck
+      - build.cancel
+      - build.approval.create
+      - server.list
+      - server.health
+      - server.metrics
+      - server.services
+      - server.service.status
+      - server.logs.read
+      - server.ssl.status
+      - server.disk.status
+      - server.processes
+      - server.security.status
+      - server.service.restart
+      - server.cache.clear
+      - server.maintenance.run
+      - server.approval.create
+      - db.connections
+      - db.health
+      - db.schemas
+      - db.tables
+      - db.table.describe
+      - db.query.read
+      - db.performance
+      - db.indexes
+      - db.migration.plan
+      - db.migration.validate
+      - db.migration.apply
+      - db.backup.status
+      - db.restore.plan
+      - db.approval.create
+      - security.scan.code
+      - security.scan.dependencies
+      - security.scan.secrets
+      - security.scan.container
+      - security.audit.server
+      - security.audit.headers
+      - security.audit.tls
+      - security.findings
+      - security.remediation.plan
+      - deploy.projects
+      - deploy.environments
+      - deploy.history
+      - deploy.plan
+      - deploy.validate
+      - deploy.staging
+      - deploy.status
+      - deploy.production.request
+      - deploy.rollback.plan
+      - deploy.rollback.request
+      - deploy.approval.create
+      - platform.info
+      - platform.projects
+      - platform.metrics
+    allow_methods: [GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS]
+    write: true
+    admin: true
+    deploy_approver: true
+    oauth_allowed: false
+    oauth_operator: false
+    max_response_bytes: 65536
+
+  - id: oauth-operator
+    api_key_env: MCP_OAUTH_OPERATOR_KEY
+    roles: [oauth_operator]
+    allow_hosts: []
+    allow_paths: []
+    capabilities: []
+    allow_methods: [GET, HEAD, OPTIONS]
+    write: false
+    admin: false
+    oauth_allowed: false
+    oauth_operator: true
+    max_response_bytes: 1024
+
+  - id: oauth-remote
+    roles: [remote_readonly]
+    projects: [brandstory-fe]
+    allow_hosts: []
+    allow_paths: []
+    capabilities:
+      - http.request
+      - page.navigate
+      - page.snapshot
+      - page.wait
+      - session.create
+      - session.close
+      - policy.explain
+      - code.list
+      - code.read
+      - code.search
+      - git.repo.list
+      - git.repo.info
+      - git.branch.list
+      - git.file.read
+      - git.diff
+      - git.pr.status
+      - git.ci.status
+      - build.detect_stack
+      - build.list_tasks
+      - build.status
+      - build.logs
+      - server.list
+      - server.health
+      - server.metrics
+      - server.services
+      - server.service.status
+      - server.logs.read
+      - server.ssl.status
+      - server.disk.status
+      - server.processes
+      - server.security.status
+      - db.connections
+      - db.health
+      - db.schemas
+      - db.tables
+      - db.table.describe
+      - db.query.read
+      - db.performance
+      - db.indexes
+      - db.migration.plan
+      - db.migration.validate
+      - db.backup.status
+      - db.restore.plan
+      - security.scan.code
+      - security.scan.dependencies
+      - security.scan.secrets
+      - security.scan.container
+      - security.audit.headers
+      - security.audit.tls
+      - security.findings
+      - deploy.projects
+      - deploy.environments
+      - deploy.history
+      - deploy.plan
+      - deploy.validate
+      - deploy.status
+      - deploy.rollback.plan
+      - platform.info
+      - platform.projects
+    allow_methods: [GET, HEAD, OPTIONS]
+    write: false
+    admin: false
+    oauth_allowed: true
+    oauth_operator: false
+    max_response_bytes: 32768
+
+deny_hosts:
+  - metadata.google.internal
+  - metadata.azure.com
+
+ssrf:
+  block_private: true
+  block_loopback: false
+  block_link_local: true
+  block_metadata: true

@@ -1,0 +1,38 @@
+version: 1
+projects:
+  - id: app-deploy
+    project_id: app
+    label: Fixture App
+    enabled: true
+    known_good_shas:
+      - abcdef1234567890abcdef1234567890abcdef12
+    environments:
+      - name: staging
+        provider: github_actions
+        profile: nextjs
+        workflow: deploy-staging.yml
+        repo: acme/app
+        health_checks:
+          - url: https://staging.example.com/health
+            expect_status: 200
+      - name: production
+        provider: github_actions
+        profile: nextjs
+        workflow: deploy-production.yml
+        repo: acme/app
+        health_checks:
+          - url: https://www.example.com/health
+            expect_status: 200
+      - name: staging-vps
+        provider: vps
+        profile: docker
+        server_id: mock-fe
+        action_id: docker.deploy
+
+  - id: other-deploy
+    project_id: other
+    enabled: true
+    environments:
+      - name: staging
+        provider: mock
+        profile: static

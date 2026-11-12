@@ -1,0 +1,98 @@
+# Technology stack profiles — status must stay honest.
+# certified = integration-tested in this repo; supported = workflows exist;
+# experimental = partial; planned = interface only.
+version: 1
+profiles:
+  - id: nextjs
+    ecosystem: javascript
+    frameworks: [nextjs, react]
+    status: supported
+    notes: BuildOps node tasks + SecurityOps next.config heuristics + DeployOps nextjs profile
+    build_task_hints: [node.install, node.build, node.test, node.lint, node.typecheck]
+    deploy_profile_hints: [nextjs]
+
+  - id: strapi
+    ecosystem: javascript
+    frameworks: [strapi]
+    status: supported
+    notes: BuildOps node + DatabaseOps PG + ServerOps pm2/strapi profiles
+    build_task_hints: [node.install, node.build, node.test]
+    deploy_profile_hints: [strapi]
+
+  - id: wordpress
+    ecosystem: php
+    frameworks: [wordpress]
+    status: experimental
+    notes: SecurityOps wp-config heuristics; DeployOps wordpress profile; not full E2E certified
+    deploy_profile_hints: [wordpress]
+
+  - id: django
+    ecosystem: python
+    frameworks: [django]
+    status: experimental
+    notes: BuildOps python detection; DeployOps django profile
+    deploy_profile_hints: [django]
+
+  - id: laravel
+    ecosystem: php
+    frameworks: [laravel]
+    status: experimental
+    notes: BuildOps PHP/composer detection; DeployOps laravel profile
+    deploy_profile_hints: [laravel]
+
+  - id: springboot
+    ecosystem: java
+    frameworks: [spring]
+    status: experimental
+    notes: BuildOps Maven/Gradle detection; DeployOps springboot profile
+    deploy_profile_hints: [springboot]
+
+  - id: dotnet
+    ecosystem: dotnet
+    frameworks: []
+    status: planned
+    notes: Detector exists; deploy/profile workflows not certified
+
+  - id: go
+    ecosystem: go
+    frameworks: []
+    status: planned
+    notes: Detector exists; deploy/profile workflows not certified
+
+  - id: static
+    ecosystem: static
+    frameworks: [html]
+    status: supported
+    notes: Static site deploy profile + basic detection
+    deploy_profile_hints: [static]
+
+  - id: docker
+    ecosystem: containers
+    frameworks: []
+    status: supported
+    notes: DeployOps docker profile; Trivy container scans when installed
+    deploy_profile_hints: [docker]
+
+  - id: postgres
+    ecosystem: database
+    frameworks: [postgresql]
+    status: supported
+    notes: DatabaseOps PostgreSQL driver tested (mock + optional live)
+
+  - id: mysql
+    ecosystem: database
+    frameworks: [mysql, mariadb]
+    status: supported
+    notes: DatabaseOps MySQL/MariaDB drivers tested (mock + optional live)
+
+  - id: mongodb
+    ecosystem: database
+    frameworks: [mongodb]
+    status: planned
+    notes: Interface reserved — not implemented
+
+  - id: redis
+    ecosystem: database
+    frameworks: [redis]
+    status: planned
+    notes: Interface reserved — not implemented

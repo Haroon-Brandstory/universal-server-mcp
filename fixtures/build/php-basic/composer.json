@@ -1,0 +1,5 @@
+{
+  "name": "fixture/php-basic",
+  "description": "Minimal PHP fixture",
+  "require": {}
+}

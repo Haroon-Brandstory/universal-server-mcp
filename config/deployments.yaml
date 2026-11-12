@@ -1,0 +1,47 @@
+# DeployOps registry — no secrets here. Providers use env/App credentials.
+version: 1
+projects:
+  - id: brandstory-fe-deploy
+    project_id: brandstory-fe
+    label: Brandstory Frontend
+    enabled: true
+    known_good_shas: []
+    environments:
+      - name: staging
+        provider: github_actions
+        profile: nextjs
+        workflow: deploy-staging.yml
+        repo: brandstorydigital/global-brandstory
+        health_checks:
+          - url: https://staging.example.com/api/health
+            expect_status: 200
+      - name: production
+        provider: github_actions
+        profile: nextjs
+        workflow: deploy-production.yml
+        repo: brandstorydigital/global-brandstory
+        health_checks:
+          - url: https://www.example.com/api/health
+            expect_status: 200
+
+  - id: brandstory-be-deploy
+    project_id: brandstory-be
+    label: Brandstory Strapi
+    enabled: true
+    known_good_shas: []
+    environments:
+      - name: staging
+        provider: vps
+        profile: strapi
+        server_id: brandstory-be-dev
+        action_id: strapi.deploy
+        requires_db_compat: true
+        health_checks:
+          - url: http://127.0.0.1:1337/_health
+            expect_status: 200
+      - name: production
+        provider: vps
+        profile: strapi
+        server_id: brandstory-be-dev
+        action_id: strapi.deploy
+        requires_db_compat: true

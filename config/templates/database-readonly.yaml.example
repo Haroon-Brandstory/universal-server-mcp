@@ -1,0 +1,20 @@
+# Snippet for config/databases.yaml — read-only first; migrate identity separate
+version: 1
+connections:
+  - id: example-be-pg-staging
+    name: Example Strapi PG (staging)
+    engine: postgresql
+    environment: staging
+    host_env: EXAMPLE_PG_HOST
+    port_env: EXAMPLE_PG_PORT
+    database_env: EXAMPLE_PG_DATABASE
+    user_env: EXAMPLE_PG_READONLY_USER
+    password_env: EXAMPLE_PG_READONLY_PASSWORD
+    ssl: require
+    schema_allowlist:
+      - public
+    statement_timeout_ms: 5000
+    max_rows: 200
+    project_ids:
+      - example-strapi-be
+    # migrate_user_env / migrate_password_env only when curated migrations approved

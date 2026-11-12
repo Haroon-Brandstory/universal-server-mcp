@@ -1,0 +1,72 @@
+# DatabaseOps registry — credential values live in env only.
+# Do not put passwords or full connection strings here.
+version: 1
+connections:
+  - id: brandstory-be-pg-dev
+    label: Brandstory Strapi PG (dev)
+    project_id: brandstory-be
+    environment: development
+    engine: postgresql
+    enabled: true
+    credentials:
+      read:
+        host_env: MCP_DB_BE_PG_HOST
+        port_env: MCP_DB_BE_PG_PORT
+        user_env: MCP_DB_BE_PG_READ_USER
+        password_env: MCP_DB_BE_PG_READ_PASSWORD
+        database_env: MCP_DB_BE_PG_DATABASE
+        ssl_env: MCP_DB_BE_PG_SSL
+      write:
+        host_env: MCP_DB_BE_PG_HOST
+        port_env: MCP_DB_BE_PG_PORT
+        user_env: MCP_DB_BE_PG_WRITE_USER
+        password_env: MCP_DB_BE_PG_WRITE_PASSWORD
+        database_env: MCP_DB_BE_PG_DATABASE
+        ssl_env: MCP_DB_BE_PG_SSL
+    allowed_databases:
+      - strapi
+    allowed_schemas:
+      - public
+    redact_columns:
+      - password
+      - resetPasswordToken
+      - registrationToken
+    permissions:
+      read: true
+      write: true
+      migrate: true
+      backup: true
+      restore: false
+    query_limits:
+      max_rows: 100
+      max_result_bytes: 64000
+      statement_timeout_ms: 5000
+      max_sql_chars: 4000
+    migrations_path: ./fixtures/databaseops/migrations-pg
+
+  - id: brandstory-be-mysql-dev
+    label: Brandstory MySQL (dev example)
+    project_id: brandstory-be
+    environment: development
+    engine: mysql
+    enabled: false
+    credentials:
+      read:
+        host_env: MCP_DB_BE_MYSQL_HOST
+        port_env: MCP_DB_BE_MYSQL_PORT
+        user_env: MCP_DB_BE_MYSQL_READ_USER
+        password_env: MCP_DB_BE_MYSQL_READ_PASSWORD
+        database_env: MCP_DB_BE_MYSQL_DATABASE
+    allowed_databases:
+      - app
+    allowed_schemas:
+      - app
+    permissions:
+      read: true
+      write: false
+      migrate: false
+      backup: true
+      restore: false
+    query_limits:
+      max_rows: 50
+      statement_timeout_ms: 5000

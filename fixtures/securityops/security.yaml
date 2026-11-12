@@ -1,0 +1,37 @@
+version: 1
+targets:
+  - id: vuln-app
+    project_id: app
+    environment: development
+    enabled: true
+    allowed_scans:
+      - code
+      - dependencies
+      - secrets
+      - container
+      - server
+      - headers
+      - tls
+    frameworks: [nextjs, strapi, wordpress]
+    scan_roots: ["."]
+    http_origins:
+      - https://example.com
+    container_images:
+      - alpine:3.18
+    server_id: mock-fe
+
+  - id: other-target
+    project_id: other
+    environment: development
+    enabled: true
+    allowed_scans: [code]
+    scan_roots: ["."]
+
+  - id: prod-target
+    project_id: app
+    environment: production
+    enabled: true
+    allowed_scans: [code, headers, tls]
+    scan_roots: ["."]
+    http_origins:
+      - https://example.com

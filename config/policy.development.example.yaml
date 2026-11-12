@@ -1,0 +1,160 @@
+# Example: development — local Cursor + optional tunnel OAuth (read-only remote).
+version: 1
+environment: development
+kill_switch: false
+rate_limit_per_min: 60
+
+serverops:
+  enabled: true
+  servers_path: ./config/servers.yaml
+  require_maintenance_approval: true
+  maintenance_rate_limit_per_min: 5
+  default_timeout_sec: 30
+  max_log_bytes: 64000
+
+databaseops:
+  enabled: true
+  databases_path: ./config/databases.yaml
+  require_migration_approval: true
+  require_backup_before_destructive: true
+  allow_production_migrations: false
+  default_statement_timeout_ms: 5000
+  default_max_rows: 100
+
+projects:
+  - id: app
+    allow_hosts: [localhost, 127.0.0.1, "[::1]"]
+    allow_paths:
+      - /absolute/path/to/your/app
+    github_repos:
+      - your-org/your-app
+
+github:
+  deny_commit_branches: [main, master, production]
+  require_write_approval: true
+
+oauth:
+  allowed_redirect_uris:
+    - https://grok.com/connectors-oauth-exchange-code/
+  default_principal_id: oauth-remote
+  allow_dynamic_registration: false
+
+principals:
+  - id: local-dev
+    api_key_env: MCP_API_KEY
+    roles: [operator]
+    projects: [app]
+    allow_hosts: []
+    allow_paths: []
+    capabilities:
+      - http.request
+      - page.navigate
+      - page.snapshot
+      - page.click
+      - page.fill
+      - page.wait
+      - session.create
+      - session.close
+      - policy.explain
+      - audit.tail
+      - code.list
+      - code.read
+      - code.write
+      - code.edit
+      - code.search
+      - git.repo.list
+      - git.repo.info
+      - git.branch.list
+      - git.branch.create
+      - git.file.read
+      - git.diff
+      - git.commit
+      - git.pr.create
+      - git.pr.status
+      - git.ci.status
+      - git.approval.create
+      - server.list
+      - server.health
+      - server.metrics
+      - server.services
+      - server.service.status
+      - server.logs.read
+      - server.ssl.status
+      - server.disk.status
+      - server.processes
+      - server.security.status
+      - server.service.restart
+      - server.cache.clear
+      - server.maintenance.run
+      - server.approval.create
+      - db.connections
+      - db.health
+      - db.schemas
+      - db.tables
+      - db.table.describe
+      - db.query.read
+      - db.performance
+      - db.indexes
+      - db.migration.plan
+      - db.migration.validate
+      - db.migration.apply
+      - db.backup.status
+      - db.restore.plan
+      - db.approval.create
+    allow_methods: [GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS]
+    write: true
+    admin: true
+    oauth_allowed: false
+    max_response_bytes: 65536
+
+  - id: oauth-operator
+    api_key_env: MCP_OAUTH_OPERATOR_KEY
+    roles: [oauth_operator]
+    allow_hosts: []
+    capabilities: []
+    allow_methods: [GET]
+    write: false
+    admin: false
+    oauth_operator: true
+    max_response_bytes: 1024
+
+  - id: oauth-remote
+    roles: [remote_readonly]
+    projects: [app]
+    allow_hosts: []
+    capabilities:
+      - http.request
+      - page.navigate
+      - page.snapshot
+      - page.wait
+      - session.create
+      - session.close
+      - policy.explain
+      - code.list
+      - code.read
+      - code.search
+      - server.list
+      - server.health
+      - server.metrics
+      - server.services
+      - server.service.status
+      - server.logs.read
+      - server.ssl.status
+      - server.disk.status
+      - server.processes
+      - server.security.status
+    allow_methods: [GET, HEAD, OPTIONS]
+    write: false
+    admin: false
+    oauth_allowed: true
+    max_response_bytes: 32768
+
+deny_hosts:
+  - metadata.google.internal
+  - metadata.azure.com
+
+ssrf:
+  block_private: true
+  block_loopback: false
+  block_link_local: true
+  block_metadata: true

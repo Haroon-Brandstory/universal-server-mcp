@@ -1,0 +1,21 @@
+# Snippet for config/servers.yaml — restricted non-root SSH diagnostics host
+version: 1
+servers:
+  - id: example-staging-vps
+    name: Example staging VPS
+    environment: staging
+    host: staging-vps.example.com
+    port: 22
+    user: mcp-ops
+    auth:
+      private_key_env: MCP_SSH_KEY_EXAMPLE_STAGING
+      known_hosts_env: MCP_SSH_KNOWN_HOSTS_EXAMPLE_STAGING
+    allow_services:
+      - nginx
+      - pm2
+    allow_maintenance:
+      - cache.clear
+      - service.restart:nginx
+    healthcheck_url: https://staging.example.com/health
+    project_ids:
+      - example-nextjs-fe

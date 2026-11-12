@@ -1,0 +1,10 @@
+{
+  "name": "vuln-app-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@strapi/strapi": "4.0.0",
+    "lodash": "4.17.15",
+    "next": "13.0.0"
+  }
+}

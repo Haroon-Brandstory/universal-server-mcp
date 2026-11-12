@@ -1,0 +1,10 @@
+/var/log/global-server-mcp/*.jsonl /data/logs/*.jsonl {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    create 0640 mcp mcp
+}

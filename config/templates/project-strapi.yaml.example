@@ -1,0 +1,41 @@
+# Template — Strapi backend project registry entry (copy into config/projects.yaml)
+version: 1
+projects:
+  - id: example-strapi-be
+    name: Example Strapi Backend
+    description: Strapi CMS/API on Linux VPS
+    stack_profile: strapi
+    allow_hosts:
+      - localhost
+      - 127.0.0.1
+      - api.staging.example.com
+    allow_paths:
+      - /ABSOLUTE/PATH/TO/LOCAL/STRAPI/CHECKOUT
+    github_repos:
+      - OWNER/REPO
+    server_ids:
+      - example-be-staging
+    database_ids:
+      - example-be-pg-staging
+    deploy_project_id: example-be-deploy
+    security_target_ids:
+      - example-be-sec
+    environments: [development, staging, production]
+    authorized_clients:
+      - local-dev
+    build:
+      network: none
+      approved_tasks:
+        - node.install
+        - node.build
+        - node.test
+        - node.lint
+        - node.typecheck
+      resource_limits:
+        timeout_sec: 400
+        memory_mb: 3072
+    # Operator notes:
+    # strapi_major: detect from package.json @strapi/strapi
+    # runtime: node>=18/20 per Strapi version
+    # db: postgres preferred — register in databases.yaml with read-only env refs
+    # healthcheck_url: https://api.staging.example.com/_health

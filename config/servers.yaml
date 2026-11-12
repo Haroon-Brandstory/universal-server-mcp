@@ -1,0 +1,91 @@
+# ServerOps registry — mock entries for local/dev. Do not point at production
+# without known_hosts + non-root keys + explicit operator review.
+# Never put private keys or passwords in this file.
+version: 1
+servers:
+  - id: brandstory-fe-dev
+    label: Brandstory FE (dev mock)
+    project_id: brandstory-fe
+    environment: development
+    enabled: true
+    connection:
+      method: mock
+      host: 127.0.0.1
+      port: 22
+      user: mcp-monitor
+    services:
+      - nginx
+      - pm2
+      - nextjs
+      - systemd
+    approved_maintenance:
+      - service.restart
+      - cache.clear
+      - maintenance.run
+      - nginx.reload
+      - pm2.save
+      - disk.inode.check
+    monitoring:
+      ssl_hosts: []
+      health_urls:
+        - http://127.0.0.1:3000/api/health
+      log_sources:
+        - nginx
+        - pm2
+
+  - id: brandstory-be-dev
+    label: Brandstory BE / Strapi (dev mock)
+    project_id: brandstory-be
+    environment: development
+    enabled: true
+    connection:
+      method: mock
+      host: 127.0.0.1
+      port: 22
+      user: mcp-monitor
+    services:
+      - nginx
+      - pm2
+      - strapi
+      - postgres
+      - systemd
+    approved_maintenance:
+      - service.restart
+      - cache.clear
+      - maintenance.run
+      - nginx.reload
+      - disk.inode.check
+    monitoring:
+      ssl_hosts: []
+      health_urls:
+        - http://127.0.0.1:1337/_health
+      log_sources:
+        - strapi
+        - postgres
+
+  # Example SSH shape (disabled). Operator fills host + env key paths.
+  # Does not auto-install agents or rewrite remote SSH config.
+  - id: example-staging-ssh
+    label: Example staging (disabled template)
+    project_id: brandstory-fe
+    environment: staging
+    enabled: false
+    connection:
+      method: ssh
+      host: staging.example.com
+      port: 22
+      user: mcp-monitor
+      private_key_path_env: MCP_SERVER_STAGING_KEY_PATH
+      known_hosts_path_env: MCP_SERVER_STAGING_KNOWN_HOSTS
+    services:
+      - nginx
+      - pm2
+      - nextjs
+    approved_maintenance:
+      - cache.clear
+      - nginx.reload
+    monitoring:
+      ssl_hosts:
+        - staging.example.com
+      health_urls:
+        - https://staging.example.com/api/health

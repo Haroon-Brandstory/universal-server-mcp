@@ -1,0 +1,33 @@
+# SecurityOps targets — only registered projects/origins/servers may be scanned.
+version: 1
+targets:
+  - id: brandstory-fe-sec
+    label: Brandstory FE security target
+    project_id: brandstory-fe
+    environment: development
+    enabled: true
+    allowed_scans:
+      - code
+      - dependencies
+      - secrets
+      - headers
+      - tls
+      - container
+    frameworks: [nextjs]
+    scan_roots: ["."]
+    http_origins: []
+    container_images: []
+
+  - id: brandstory-be-sec
+    label: Brandstory BE / Strapi security target
+    project_id: brandstory-be
+    environment: development
+    enabled: true
+    allowed_scans:
+      - code
+      - dependencies
+      - secrets
+      - server
+    frameworks: [strapi]
+    scan_roots: ["."]
+    server_id: brandstory-be-dev

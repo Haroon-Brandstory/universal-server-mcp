@@ -1,0 +1,108 @@
+version: 1
+connections:
+  - id: mock-pg
+    project_id: app
+    environment: development
+    engine: postgresql
+    enabled: true
+    credentials:
+      read:
+        host_env: TEST_PG_HOST
+        user_env: TEST_PG_READ_USER
+        password_env: TEST_PG_READ_PASSWORD
+        database_env: TEST_PG_DATABASE
+      write:
+        host_env: TEST_PG_HOST
+        user_env: TEST_PG_WRITE_USER
+        password_env: TEST_PG_WRITE_PASSWORD
+        database_env: TEST_PG_DATABASE
+    allowed_databases: [testdb]
+    allowed_schemas: [public, app]
+    redact_columns: [password]
+    permissions:
+      read: true
+      write: true
+      migrate: true
+      backup: true
+      restore: true
+    query_limits:
+      max_rows: 2
+      max_result_bytes: 2000
+      statement_timeout_ms: 2000
+      max_sql_chars: 500
+    migrations_path: ./fixtures/databaseops/migrations-pg
+
+  - id: mock-mysql
+    project_id: app
+    environment: development
+    engine: mysql
+    enabled: true
+    credentials:
+      read:
+        host_env: TEST_MYSQL_HOST
+        user_env: TEST_MYSQL_READ_USER
+        password_env: TEST_MYSQL_READ_PASSWORD
+        database_env: TEST_MYSQL_DATABASE
+      write:
+        host_env: TEST_MYSQL_HOST
+        user_env: TEST_MYSQL_WRITE_USER
+        password_env: TEST_MYSQL_WRITE_PASSWORD
+        database_env: TEST_MYSQL_DATABASE
+    allowed_databases: [testdb]
+    allowed_schemas: [testdb]
+    permissions:
+      read: true
+      write: true
+      migrate: true
+      backup: true
+      restore: false
+    query_limits:
+      max_rows: 5
+      statement_timeout_ms: 2000
+    migrations_path: ./fixtures/databaseops/migrations-mysql
+
+  - id: other-db
+    project_id: other
+    environment: development
+    engine: postgresql
+    enabled: true
+    credentials:
+      read:
+        host_env: X
+        user_env: X
+        password_env: X
+        database_env: X
+    allowed_databases: [x]
+    allowed_schemas: [public]
+    permissions:
+      read: true
+      write: false
+      migrate: false
+      backup: false
+      restore: false
+
+  - id: prod-blocked
+    project_id: app
+    environment: production
+    engine: postgresql
+    enabled: true
+    credentials:
+      read:
+        host_env: TEST_PG_HOST
+        user_env: TEST_PG_READ_USER
+        password_env: TEST_PG_READ_PASSWORD
+        database_env: TEST_PG_DATABASE
+      write:
+        host_env: TEST_PG_HOST
+        user_env: TEST_PG_WRITE_USER
+        password_env: TEST_PG_WRITE_PASSWORD
+        database_env: TEST_PG_DATABASE
+    allowed_databases: [testdb]
+    allowed_schemas: [public]
+    permissions:
+      read: true
+      write: true
+      migrate: true
+      backup: true
+      restore: false
+    migrations_path: ./fixtures/databaseops/migrations-pg

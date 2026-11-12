@@ -1,0 +1,57 @@
+{
+  "name": "global-server-mcp",
+  "version": "0.1.0",
+  "description": "Universal WebOps MCP Gateway — policy-gated browser + HTTP access for agents",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "global-server-mcp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start:http": "MCP_TRANSPORT=http node dist/index.js",
+    "start:prod": "NODE_ENV=production MCP_TRANSPORT=http node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "dev:http": "MCP_TRANSPORT=http tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test 'src/**/*.test.ts'",
+    "ci": "npm run typecheck && npm test && npm run build",
+    "docker:build": "docker build -t global-server-mcp:local .",
+    "docker:up": "docker compose up -d --build",
+    "audit:deps": "npm audit --audit-level=high"
+  },
+  "keywords": [
+    "mcp",
+    "webops",
+    "security",
+    "playwright",
+    "agents"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@octokit/auth-app": "^8.3.1",
+    "@octokit/rest": "^22.0.1",
+    "express": "^5.2.1",
+    "mysql2": "^3.24.6",
+    "pg": "^8.23.1",
+    "playwright": "^1.52.0",
+    "yaml": "^2.7.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.15.3",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true
+  }
+}

@@ -1,0 +1,47 @@
+version: 1
+servers:
+  - id: mock-fe
+    project_id: app
+    environment: development
+    enabled: true
+    connection:
+      method: mock
+      host: 127.0.0.1
+      user: mcp-monitor
+    services: [nginx, pm2, nextjs]
+    approved_maintenance:
+      - service.restart
+      - cache.clear
+      - maintenance.run
+      - nginx.reload
+      - pm2.save
+      - disk.inode.check
+    monitoring:
+      health_urls: [http://127.0.0.1:3000/api/health]
+      ssl_hosts: [app.example.test]
+
+  - id: mock-be
+    project_id: app
+    environment: staging
+    enabled: true
+    connection:
+      method: mock
+      host: 127.0.0.1
+      user: mcp-monitor
+    services: [strapi, postgres, nginx]
+    approved_maintenance:
+      - cache.clear
+      - nginx.reload
+    monitoring:
+      health_urls: [http://127.0.0.1:1337/_health]
+
+  - id: other-project
+    project_id: other
+    environment: development
+    enabled: true
+    connection:
+      method: mock
+      host: 127.0.0.1
+      user: mcp-monitor
+    services: [nginx]
+    approved_maintenance: []
