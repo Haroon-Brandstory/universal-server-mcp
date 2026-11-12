@@ -45,6 +45,7 @@ servers:
       ssl_hosts: []
       health_urls:
         - http://127.0.0.1:1337/_health
+        - https://ranking-inspections-bio-selective.trycloudflare.com/_health
       log_sources:
         - strapi
 

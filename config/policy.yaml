@@ -237,7 +237,7 @@ principals:
 
   - id: oauth-remote
     roles: [remote_readonly]
-    projects: [brandstory-fe]
+    projects: [brandstory-fe, brandstory-be]
     allow_hosts: []
     allow_paths: []
     capabilities:

@@ -51,6 +51,8 @@ projects:
       - localhost
       - 127.0.0.1
       - "[::1]"
+      # Public tunnel of local Strapi (cloudflared → :1337) — for Render/Grok
+      - ranking-inspections-bio-selective.trycloudflare.com
     allow_paths:
       - /Users/brandstorydigital/Documents/projects/work/bsd-strapi
     github_repos:
@@ -66,6 +68,8 @@ projects:
     environments: [development, staging, production]
     authorized_clients:
       - local-dev
+      - oauth-remote
+      - global-server-mcp-grok
     build:
       network: none
       approved_tasks:

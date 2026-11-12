@@ -29,6 +29,10 @@ targets:
       - dependencies
       - secrets
       - server
+      - headers
+      - tls
     frameworks: [strapi]
     scan_roots: ["."]
+    http_origins:
+      - https://ranking-inspections-bio-selective.trycloudflare.com
     server_id: brandstory-be-dev
