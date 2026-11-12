@@ -1,67 +1,52 @@
-# ServerOps registry — mock entries for local/dev. Do not point at production
-# without known_hosts + non-root keys + explicit operator review.
+# ServerOps registry.
+# local = curated commands on the MCP host (test Next/Strapi on same machine).
+# ssh = real VPS. mock = unit tests only (injected transport).
 # Never put private keys or passwords in this file.
 version: 1
 servers:
   - id: brandstory-fe-dev
-    label: Brandstory FE (dev mock)
+    label: Brandstory FE (local Next.js)
     project_id: brandstory-fe
     environment: development
     enabled: true
     connection:
-      method: mock
+      method: local
       host: 127.0.0.1
       port: 22
-      user: mcp-monitor
+      user: local
     services:
-      - nginx
-      - pm2
       - nextjs
-      - systemd
     approved_maintenance:
-      - service.restart
       - cache.clear
-      - maintenance.run
-      - nginx.reload
-      - pm2.save
-      - disk.inode.check
     monitoring:
       ssl_hosts: []
       health_urls:
-        - http://127.0.0.1:3000/api/health
+        # Local process + public ngrok tunnel of same Next app
+        - http://127.0.0.1:3000/
+        - https://unaware-paced-unvocal.ngrok-free.dev/
       log_sources:
-        - nginx
-        - pm2
+        - nextjs
 
   - id: brandstory-be-dev
-    label: Brandstory BE / Strapi (dev mock)
+    label: Brandstory BE / Strapi (local)
     project_id: brandstory-be
     environment: development
     enabled: true
     connection:
-      method: mock
+      method: local
       host: 127.0.0.1
       port: 22
-      user: mcp-monitor
+      user: local
     services:
-      - nginx
-      - pm2
       - strapi
-      - postgres
-      - systemd
     approved_maintenance:
-      - service.restart
       - cache.clear
-      - maintenance.run
-      - nginx.reload
-      - disk.inode.check
     monitoring:
       ssl_hosts: []
       health_urls:
         - http://127.0.0.1:1337/_health
       log_sources:
         - strapi
-        - postgres
 
   # --- Real VPS (SSH) — set enabled: true after host + keys ready ---
   # Render: set MCP_SSH_KEY_FE_PEM + MCP_SSH_KNOWN_HOSTS_FE (entrypoint writes files).

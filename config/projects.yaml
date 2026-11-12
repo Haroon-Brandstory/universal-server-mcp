@@ -10,6 +10,8 @@ projects:
       - localhost
       - 127.0.0.1
       - "[::1]"
+      # Public tunnel of local Next (ngrok http 3000) — for Render/Grok http.request
+      - unaware-paced-unvocal.ngrok-free.dev
     allow_paths:
       - /Users/brandstorydigital/Documents/projects/work/global-brandstory
     github_repos:

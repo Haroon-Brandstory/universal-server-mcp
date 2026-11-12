@@ -15,7 +15,8 @@ targets:
       - container
     frameworks: [nextjs]
     scan_roots: ["."]
-    http_origins: []
+    http_origins:
+      - https://unaware-paced-unvocal.ngrok-free.dev
     container_images: []
 
   - id: brandstory-be-sec

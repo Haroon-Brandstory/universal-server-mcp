@@ -1,6 +1,7 @@
 import type { PolicyEnvironment } from "../../types.js";
 
-export type ServerConnectionMethod = "ssh" | "mock";
+/** mock = tests only; local = curated argv on gateway host; ssh = remote VPS */
+export type ServerConnectionMethod = "ssh" | "mock" | "local";
 
 export interface ServerConnection {
   method: ServerConnectionMethod;

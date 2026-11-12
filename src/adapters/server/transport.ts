@@ -151,6 +151,68 @@ export class MockServerTransport implements ServerTransport {
   }
 }
 
+/**
+ * Run curated argv on the gateway host (no SSH).
+ * For local FE/BE smoke while Next/Strapi run on the same machine as MCP.
+ * Not usable from Render → your laptop localhost.
+ */
+export class LocalServerTransport implements ServerTransport {
+  async exec(
+    server: ServerRecord,
+    argv: string[],
+    opts: { timeoutMs: number }
+  ): Promise<ExecResult> {
+    if (server.connection.method !== "local") {
+      throw new Error(`Server ${server.id} connection.method is not local`);
+    }
+    const safe = assertSafeArgv(argv);
+    const started = Date.now();
+    return await new Promise<ExecResult>((resolve, reject) => {
+      const child = spawn(safe[0]!, safe.slice(1), {
+        stdio: ["ignore", "pipe", "pipe"],
+        shell: false,
+        env: { PATH: process.env.PATH, HOME: process.env.HOME },
+      });
+      let stdout = "";
+      let stderr = "";
+      const max = 256_000;
+      const append = (which: "out" | "err", buf: Buffer) => {
+        const s = buf.toString("utf8");
+        if (which === "out") stdout += s;
+        else stderr += s;
+        if (Buffer.byteLength(stdout + stderr) > max) {
+          child.kill("SIGKILL");
+        }
+      };
+      child.stdout?.on("data", (b) => append("out", b));
+      child.stderr?.on("data", (b) => append("err", b));
+      const timer = setTimeout(() => {
+        child.kill("SIGKILL");
+        reject(new Error(`local exec timeout after ${opts.timeoutMs}ms`));
+      }, opts.timeoutMs);
+      child.on("error", (err) => {
+        clearTimeout(timer);
+        // Missing binary (e.g. /proc tools on macOS) → soft fail, not crash.
+        resolve({
+          code: 127,
+          stdout: "",
+          stderr: redactTransportStderr(err.message),
+          durationMs: Date.now() - started,
+        });
+      });
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        resolve({
+          code: code ?? 1,
+          stdout,
+          stderr: redactTransportStderr(stderr),
+          durationMs: Date.now() - started,
+        });
+      });
+    });
+  }
+}
+
 let override: ServerTransport | null = null;
 
 export function setServerTransportForTests(t: ServerTransport | null): void {
@@ -163,6 +225,9 @@ export function getServerTransport(server: ServerRecord): ServerTransport {
     throw new Error(
       `Server ${server.id} is mock-only; inject MockServerTransport in tests`
     );
+  }
+  if (server.connection.method === "local") {
+    return new LocalServerTransport();
   }
   return new SshServerTransport();
 }
