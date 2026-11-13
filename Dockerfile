@@ -36,7 +36,9 @@ COPY --from=build --chown=mcp:mcp /app/node_modules ./node_modules
 COPY --from=build --chown=mcp:mcp /app/dist ./dist
 COPY --chown=mcp:mcp config ./config
 COPY --chown=mcp:mcp deploy/docker/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh \
+  && npm install -g pm2@5.4.3 \
+  && pm2 --version
 
 USER mcp
 EXPOSE 7337

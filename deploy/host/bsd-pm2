@@ -1,31 +1,13 @@
 #!/usr/bin/env bash
-# Host/container bridge: run PM2 against the bsdglobal daemon (PM2_HOME).
-# Installed to /usr/local/sbin/bsd-pm2 — MCP profiles call this absolute path.
+# Optional host-side helper. Container prefers /usr/local/bin/pm2 + PM2_HOME=/pm2-home.
 set -euo pipefail
-
 export HOME="${BSD_PM2_HOME_USER:-${HOME:-/home/bsdglobal}}"
 export PM2_HOME="${PM2_HOME:-${HOME}/.pm2}"
-
-PM2_BIN="${MCP_PM2_BIN:-}"
-if [[ -z "${PM2_BIN}" ]]; then
-  if [[ -x /host-nodejs/bin/pm2 ]]; then
-    PM2_BIN=/host-nodejs/bin/pm2
-  elif command -v pm2 >/dev/null 2>&1; then
-    PM2_BIN="$(command -v pm2)"
-  else
-    # shellcheck disable=SC2086
-    for c in ${HOME}/.nvm/versions/node/*/bin/pm2; do
-      if [[ -x "${c}" ]]; then
-        PM2_BIN="${c}"
-        break
-      fi
-    done
-  fi
+if [[ -x /usr/local/bin/pm2 ]]; then
+  exec /usr/local/bin/pm2 "$@"
 fi
-
-if [[ -z "${PM2_BIN}" || ! -x "${PM2_BIN}" ]]; then
-  echo "bsd-pm2: pm2 binary not found (set MCP_PM2_BIN or mount /host-nodejs/bin)" >&2
-  exit 127
+if command -v pm2 >/dev/null 2>&1; then
+  exec pm2 "$@"
 fi
-
-exec "${PM2_BIN}" "$@"
+echo "bsd-pm2: pm2 not found" >&2
+exit 127

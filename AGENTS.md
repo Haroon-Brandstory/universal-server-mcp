@@ -12,7 +12,7 @@ See `docs/BSD_GLOBAL_MCP.md`. Do not add other sites here.
 - Auth fail-closed. Never soft-allow anonymous stdio/HTTP.
 - Live CodeOps: `code.approval.create` → `/operators` approve → `code.write`/`code.edit` with `approvalId`. Stay inside FE/BE roots only.
 - Go live (Next): after code approve+write → `server.approval.create` → `/operators` → `maintenance.run` `nextjs.build` → `server.service.restart` `nextjs` on `brandstory-fe-vps`.
-- Docker PM2: host bridge `deploy/host/install-pm2-bridge.sh` + compose `--env-file deploy/docker/.env.pm2` (else `spawn pm2 ENOENT`).
+- Docker PM2: image `pm2` + mount host `~/.pm2` as `/pm2-home` (`install-pm2-bridge.sh` ACL). Never mount host `/usr/bin` on PATH (breaks OAuth).
 - Git/build/server/db/deploy writes: same dual-auth (`*.approval.create` → `/operators` → consume `approvalId`). Never put operator token in chat. See `docs/OPERATORS.md`.
 - OAuth: operator consent required; tokens only to `oauth_allowed` principals.
 - Browser sessions bound to principal — no cross-principal access.

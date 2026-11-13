@@ -2,14 +2,10 @@
 # Install root: /opt/bsd-global-mcp
 # Nginx on host → 127.0.0.1:7337 → this container (host network)
 #
-# PM2 bridge (required for Grok/Cursor restart + nextjs.build):
-#   sudo bash deploy/host/install-pm2-bridge.sh
-#   # append printed MCP_PM2_* lines into /etc/bsd-global-mcp/env
-#   docker compose -f deploy/docker/docker-compose.bsd-global.yml \
-#     --env-file deploy/docker/.env.pm2 up -d --build
+# OAuth needs user 10001 + writable /data. Never mount host /usr/bin into PATH.
+# PM2: image ships pm2 client; mount host ~/.pm2 (ACL via install-pm2-bridge.sh).
 #
-# Usage:
-#   cd /opt/bsd-global-mcp
+#   sudo bash deploy/host/install-pm2-bridge.sh
 #   docker compose -f deploy/docker/docker-compose.bsd-global.yml \
 #     --env-file deploy/docker/.env.pm2 up -d --build
 
@@ -21,10 +17,8 @@ services:
     image: bsd-global-mcp:latest
     container_name: bsd-global-mcp
     restart: unless-stopped
-    # Same network namespace as host → health to :3000/:1337 + bind 127.0.0.1:7337
     network_mode: host
-    # Keep image user 10001 — owns /data volume (oauth-store + audit). Do NOT switch to
-    # bsdglobal uid or OAuth /token returns 500 (EACCES on /data).
+    # Owns /data (oauth-store + audit). Do NOT switch to bsdglobal uid.
     user: "10001:10001"
     read_only: true
     tmpfs:
@@ -49,29 +43,21 @@ services:
       MCP_METRICS_PATH: /data/logs/metrics.jsonl
       MCP_OAUTH_STORE_PATH: /data/oauth-store.json
       MCP_BUILD_WORK_ROOT: /data/build-workspaces
-      # Host PM2 / npm (override in /etc/bsd-global-mcp/env if needed)
-      MCP_PM2_BIN: ${MCP_PM2_BIN:-/usr/local/sbin/bsd-pm2}
-      MCP_NPM_BIN: ${MCP_NPM_BIN:-/host-nodejs/bin/npm}
+      # Image node/npm/pm2 — never host /usr/bin (glibc poison → /token 500)
+      MCP_PM2_BIN: /usr/local/bin/pm2
+      MCP_NPM_BIN: /usr/local/bin/npm
       MCP_PM2_NEXTJS_NAME: ${MCP_PM2_NEXTJS_NAME:-frontend-nextjs}
       MCP_PM2_STRAPI_NAME: ${MCP_PM2_STRAPI_NAME:-strapi-backend}
-      HOME: ${MCP_HOST_HOME:-/home/bsdglobal}
-      PM2_HOME: ${MCP_HOST_HOME:-/home/bsdglobal}/.pm2
-      PATH: /host-nodejs/bin:/usr/local/sbin:/usr/bin:/bin
-      BSD_PM2_HOME_USER: ${MCP_HOST_HOME:-/home/bsdglobal}
-    # www-data (33) = CodeOps writes; MCP_HOST_GID = talk to host PM2_HOME
+      PM2_HOME: /pm2-home
     group_add:
       - "33"
-      - "${MCP_HOST_GID:-33}"
     volumes:
       - ../../config:/app/config:ro
       - bsd-global-mcp-data:/data
-      # Live CodeOps — rw into VPS app trees (path-jailed by policy)
       - /var/www/html/global-brandstory:/var/www/html/global-brandstory:rw
       - /var/www/html/global-backend/bsd-strapi:/var/www/html/global-backend/bsd-strapi:rw
-      # Host PM2 bridge (install-pm2-bridge.sh)
-      - /usr/local/sbin/bsd-pm2:/usr/local/sbin/bsd-pm2:ro
-      - ${MCP_HOST_NODE_BIN:-/usr/bin}:/host-nodejs/bin:ro
-      - ${MCP_HOST_HOME:-/home/bsdglobal}/.pm2:${MCP_HOST_HOME:-/home/bsdglobal}/.pm2:rw
+      # Host PM2 daemon socket/files (ACL for uid 10001 via install-pm2-bridge.sh)
+      - ${MCP_HOST_HOME:-/home/bsdglobal}/.pm2:/pm2-home:rw
     security_opt:
       - no-new-privileges:true
     cap_drop:
