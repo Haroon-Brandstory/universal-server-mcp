@@ -127,4 +127,15 @@ ssrf:
       )
     );
   });
+
+  it("bad refresh token throws InvalidGrantError (SDK → 400 not 500)", async () => {
+    const { InvalidGrantError } = await import(
+      "@modelcontextprotocol/sdk/server/auth/errors.js"
+    );
+    const client = await provider.clientsStore.getClient("global-server-mcp-grok");
+    await assert.rejects(
+      () => provider.exchangeRefreshToken(client!, "not-a-real-refresh"),
+      (err: unknown) => err instanceof InvalidGrantError
+    );
+  });
 });

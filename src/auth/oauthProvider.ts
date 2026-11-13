@@ -10,7 +10,10 @@ import type {
 } from "@modelcontextprotocol/sdk/server/auth/provider.js";
 import type { OAuthRegisteredClientsStore } from "@modelcontextprotocol/sdk/server/auth/clients.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { InvalidRequestError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
+import {
+  InvalidGrantError,
+  InvalidRequestError,
+} from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { loadPolicy } from "../config.js";
 import {
   DurableOAuthStore,
@@ -201,7 +204,7 @@ export class GatewayOAuthProvider implements OAuthServerProvider {
     authorizationCode: string
   ): Promise<string> {
     const data = this.store.getCode(authorizationCode);
-    if (!data) throw new Error("Invalid authorization code");
+    if (!data) throw new InvalidGrantError("Invalid authorization code");
     return data.params.codeChallenge;
   }
 
@@ -213,9 +216,11 @@ export class GatewayOAuthProvider implements OAuthServerProvider {
     _resource?: URL
   ): Promise<OAuthTokens> {
     const data = this.store.getCode(authorizationCode);
-    if (!data) throw new Error("Invalid authorization code");
+    if (!data) throw new InvalidGrantError("Invalid authorization code");
     if (data.clientId !== client.client_id) {
-      throw new Error("Authorization code was not issued to this client");
+      throw new InvalidGrantError(
+        "Authorization code was not issued to this client"
+      );
     }
     this.store.deleteCode(authorizationCode);
 
@@ -235,10 +240,12 @@ export class GatewayOAuthProvider implements OAuthServerProvider {
   ): Promise<OAuthTokens> {
     const existing = this.store.getToken(refreshToken);
     if (!existing || existing.kind !== "refresh" || existing.expiresAt < Date.now()) {
-      throw new Error("Invalid refresh token");
+      throw new InvalidGrantError("Invalid refresh token");
     }
     if (existing.clientId !== client.client_id) {
-      throw new Error("Refresh token was not issued to this client");
+      throw new InvalidGrantError(
+        "Refresh token was not issued to this client"
+      );
     }
 
     const nextScopes = scopes?.length ? scopes : existing.scopes;
