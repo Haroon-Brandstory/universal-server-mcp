@@ -23,10 +23,11 @@ Operator approvals: `https://mcp.brandstoryglobal.com/operators`
 
 Full commands: **[docs/DOCKER_DO_DEPLOY.md](./DOCKER_DO_DEPLOY.md)**
 
-## Cursor / Grok — live CodeOps
+## Cursor / Grok — live CodeOps (approval required)
 
 - URL: `https://mcp.brandstoryglobal.com/mcp`
-- Cursor Bearer: `MCP_API_KEY` (`local-dev`) **or** OAuth (`oauth-remote`)
-- Live disk edits: `code.write` / `code.edit` under `/var/www/html/global-brandstory` + `…/bsd-strapi` (Docker mounts **rw**)
-- Host: make those dirs group-writable by `www-data` (see DOCKER_DO_DEPLOY.md)
-- Git branch/commit/PR + deploy: still need GitHub App + `/operators` (`MCP_OPERATOR_TOKEN`)
+- Auth: OAuth or Bearer `MCP_API_KEY`
+- **Every** live file write: `code.approval.create` → approve at `/operators` → `code.edit`/`code.write` + `approvalId`
+- **Go live:** `server.approval.create` → approve → `maintenance.run` `nextjs.build` → `server.service.restart` `nextjs` (`brandstory-fe-vps`)
+- Host dirs group-writable by `www-data` (see DOCKER_DO_DEPLOY.md)
+- Password: `MCP_OPERATOR_TOKEN` (never give to AI)

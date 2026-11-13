@@ -498,6 +498,22 @@ const MAINTENANCE_ACTIONS: Record<string, (server: ServerRecord) => string[]> = 
   "nginx.reload": () => ["sudo", "-n", "/usr/sbin/nginx", "-s", "reload"],
   "pm2.save": () => ["pm2", "save"],
   "disk.inode.check": () => ["df", "-i", "/"],
+  /** Live Next.js rebuild (BSD Global FE path). */
+  "nextjs.build": () => [
+    "npm",
+    "--prefix",
+    "/var/www/html/global-brandstory",
+    "run",
+    "build",
+  ],
+  /** Live Strapi rebuild (BSD Global BE path). */
+  "strapi.build": () => [
+    "npm",
+    "--prefix",
+    "/var/www/html/global-backend/bsd-strapi",
+    "run",
+    "build",
+  ],
 };
 
 export async function maintenanceRun(
@@ -530,10 +546,21 @@ export async function maintenanceRun(
     throw new Error(`Action not in server approved_maintenance: ${action}`);
   }
 
+  const buildTimeoutMs = action.endsWith(".build")
+    ? Math.max(timeoutMs(policy), 15 * 60_000)
+    : timeoutMs(policy);
+
   return withMaintenanceLock(policy, server, action, async () => {
-    const before = await runProbe(policy, server, ["uptime"]);
-    const r = await runProbe(policy, server, factory(server));
-    const after = await runProbe(policy, server, ["uptime"]);
+    const transport = getServerTransport(server);
+    const before = await transport.exec(server, ["uptime"], {
+      timeoutMs: timeoutMs(policy),
+    });
+    const r = await transport.exec(server, factory(server), {
+      timeoutMs: buildTimeoutMs,
+    });
+    const after = await transport.exec(server, ["uptime"], {
+      timeoutMs: timeoutMs(policy),
+    });
     return {
       serverId: server.id,
       environment: server.environment,

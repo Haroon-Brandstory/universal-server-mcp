@@ -133,30 +133,60 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
-    name: "code.write",
+    name: "code.approval.create",
     description:
-      "Overwrite/create a text file under allow_paths. Requires principal write=true.",
+      "Request pending approval for live code.write/code.edit. Does not write. Human must approve at /operators with MCP_OPERATOR_TOKEN, then pass approvalId to code tools. AI cannot self-approve.",
     inputSchema: {
       type: "object",
-      required: ["path", "content"],
+      required: ["summary"],
+      properties: {
+        summary: {
+          type: "string",
+          description: "Shown on /operators (what will change and why)",
+        },
+        pathPrefix: {
+          type: "string",
+          description: "Optional bind: only paths under this prefix may use the approval",
+        },
+        actions: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["code.write", "code.edit"],
+          },
+        },
+        ttlMs: { type: "number" },
+        uses: { type: "number" },
+      },
+    },
+  },
+  {
+    name: "code.write",
+    description:
+      "Overwrite/create a text file under allow_paths. Requires write=true + operator-approved approvalId from code.approval.create. After write, Next/Strapi need approved nextjs.build / restart to go live.",
+    inputSchema: {
+      type: "object",
+      required: ["path", "content", "approvalId"],
       properties: {
         path: { type: "string" },
         content: { type: "string" },
+        approvalId: { type: "string" },
       },
     },
   },
   {
     name: "code.edit",
     description:
-      "Surgical edit: replace oldString with newString in a file under allow_paths.",
+      "Surgical edit under allow_paths. Requires write=true + operator-approved approvalId from code.approval.create. Then nextjs.build + service.restart (also approval-gated) to go live.",
     inputSchema: {
       type: "object",
-      required: ["path", "oldString", "newString"],
+      required: ["path", "oldString", "newString", "approvalId"],
       properties: {
         path: { type: "string" },
         oldString: { type: "string" },
         newString: { type: "string" },
         replaceAll: { type: "boolean" },
+        approvalId: { type: "string" },
       },
     },
   },

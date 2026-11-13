@@ -14,6 +14,7 @@ export type Capability =
   | "code.write"
   | "code.edit"
   | "code.search"
+  | "code.approval.create"
   | "git.repo.list"
   | "git.repo.info"
   | "git.branch.list"

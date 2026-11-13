@@ -18,11 +18,15 @@ import {
   listDeployApprovalsForOperator,
   setDeployApprovalOperatorStatus,
 } from "../adapters/deploy/approval.js";
+import {
+  listCodeApprovalsForOperator,
+  setCodeApprovalOperatorStatus,
+} from "../adapters/code/approval.js";
 import { assertOperatorToken } from "./operatorToken.js";
 
 export type OperatorApprovalRow = {
   id: string;
-  module: "git" | "build" | "server" | "db" | "deploy";
+  module: "git" | "build" | "server" | "db" | "deploy" | "code";
   action: string;
   status: "pending" | "approved" | "denied";
   summary: string;
@@ -34,6 +38,24 @@ export type OperatorApprovalRow = {
 
 export function listOperatorApprovals(): OperatorApprovalRow[] {
   const rows: OperatorApprovalRow[] = [];
+
+  for (const a of listCodeApprovalsForOperator()) {
+    rows.push({
+      id: a.id,
+      module: "code",
+      action: a.actions.join(","),
+      status: a.status,
+      summary: a.summary,
+      permission: "code.write",
+      expiresAt: new Date(a.expiresAt).toISOString(),
+      createdAt: new Date(a.createdAt).toISOString(),
+      detail: {
+        pathPrefix: a.pathPrefix || null,
+        principalId: a.principalId,
+        usesLeft: a.usesLeft,
+      },
+    });
+  }
 
   for (const a of listGitApprovalsForOperator()) {
     rows.push({
@@ -142,6 +164,9 @@ export function approveOperatorApproval(
   assertOperatorToken(operatorToken);
   const module = findModule(id);
   switch (module) {
+    case "code":
+      setCodeApprovalOperatorStatus(id, "approved");
+      break;
     case "git":
       setGitApprovalOperatorStatus(id, "approved");
       break;
@@ -171,6 +196,9 @@ export function denyOperatorApproval(
   const before = listOperatorApprovals().find((r) => r.id === id);
   if (!before) throw new Error("Approval is missing or expired");
   switch (before.module) {
+    case "code":
+      setCodeApprovalOperatorStatus(id, "denied");
+      break;
     case "git":
       setGitApprovalOperatorStatus(id, "denied");
       break;

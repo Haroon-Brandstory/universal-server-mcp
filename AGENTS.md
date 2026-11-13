@@ -10,8 +10,9 @@ See `docs/BSD_GLOBAL_MCP.md`. Do not add other sites here.
 ## Hard rules
 - Default deny. No host/capability/path → deny.
 - Auth fail-closed. Never soft-allow anonymous stdio/HTTP.
-- Live CodeOps: `code.write` / `code.edit` allowed on VPS allow_paths (Docker rw mounts). Stay inside FE/BE roots only.
-- Git/build/server/db/deploy writes: `*.approval.create` → pending → human approves at `/operators` (`MCP_OPERATOR_TOKEN`) → tell agent approved → consume `approvalId`. Never put operator token in chat. See `docs/OPERATORS.md`.
+- Live CodeOps: `code.approval.create` → `/operators` approve → `code.write`/`code.edit` with `approvalId`. Stay inside FE/BE roots only.
+- Go live (Next): after code approve+write → `server.approval.create` → `/operators` → `maintenance.run` `nextjs.build` → `server.service.restart` `nextjs` on `brandstory-fe-vps`.
+- Git/build/server/db/deploy writes: same dual-auth (`*.approval.create` → `/operators` → consume `approvalId`). Never put operator token in chat. See `docs/OPERATORS.md`.
 - OAuth: operator consent required; tokens only to `oauth_allowed` principals.
 - Browser sessions bound to principal — no cross-principal access.
 - Never add unrestricted `eval`, raw shell, cookie dump, or arbitrary remote shell tools.

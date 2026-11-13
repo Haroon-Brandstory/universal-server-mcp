@@ -4,12 +4,19 @@ AI can **request** a change. A human must **approve** before the write runs.
 
 ## Flow
 
-1. Agent calls `*.approval.create` → gets `approvalId` with `status: pending`
-2. Human opens **`/operators`** (e.g. `https://mcp.example.com/operators`)
+1. Agent calls `*.approval.create` (or `code.approval.create`) → `approvalId` with `status: pending`
+2. Human opens **`/operators`** (e.g. `https://mcp.brandstoryglobal.com/operators`)
 3. Sign in with **`MCP_OPERATOR_TOKEN`** (approval password — never give to the AI)
 4. Click **Approve** (or Deny)
 5. Tell the agent it is approved
 6. Agent retries the write tool with that `approvalId`
+
+### Live Next.js example
+
+1. `code.approval.create` → approve → `code.edit` + `approvalId` (source on disk)
+2. `server.approval.create` (`brandstory-fe-vps`, confirmEnvironment `production`) → approve
+3. `server.maintenance.run` action `nextjs.build` + `approvalId`
+4. `server.service.restart` service `nextjs` + new/same approved `approvalId` (uses left)
 
 ## Env
 

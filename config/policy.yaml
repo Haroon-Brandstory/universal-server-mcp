@@ -123,6 +123,7 @@ principals:
       - code.write
       - code.edit
       - code.search
+      - code.approval.create
       - git.repo.list
       - git.repo.info
       - git.branch.list
@@ -238,6 +239,7 @@ principals:
       - code.write
       - code.edit
       - code.search
+      - code.approval.create
       - git.repo.list
       - git.repo.info
       - git.branch.list
@@ -259,6 +261,10 @@ principals:
       - server.disk.status
       - server.processes
       - server.security.status
+      - server.service.restart
+      - server.cache.clear
+      - server.maintenance.run
+      - server.approval.create
       - db.connections
       - db.health
       - db.schemas

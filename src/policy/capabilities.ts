@@ -18,6 +18,7 @@ export const CAPABILITY_CLASS: Record<Capability, CapabilityClass> = {
   "code.write": "write",
   "code.edit": "write",
   "code.search": "read",
+  "code.approval.create": "write",
   "git.repo.list": "read",
   "git.repo.info": "read",
   "git.branch.list": "read",
@@ -53,7 +54,8 @@ export const CAPABILITY_CLASS: Record<Capability, CapabilityClass> = {
   "server.service.restart": "write",
   "server.cache.clear": "write",
   "server.maintenance.run": "write",
-  "server.approval.create": "admin",
+  /** Requestors create pending tickets; humans approve at /operators. */
+  "server.approval.create": "write",
   "db.connections": "read",
   "db.health": "read",
   "db.schemas": "read",

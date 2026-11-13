@@ -391,13 +391,76 @@ async function dispatch(
       );
     }
 
+    case "code.approval.create": {
+      requireCap(ctx, policy, "code.approval.create");
+      if (!ctx.principal.write) throw new Error("Principal write=false");
+      const { createCodeWriteApproval } = await import(
+        "./adapters/code/approval.js"
+      );
+      const {
+        pendingApprovalNext,
+        requireOperatorTokenConfigured,
+      } = await import("./auth/operatorToken.js");
+      requireOperatorTokenConfigured();
+      const actions = Array.isArray(args.actions)
+        ? (args.actions.map(String) as Array<"code.write" | "code.edit">)
+        : undefined;
+      const approval = createCodeWriteApproval({
+        principalId: ctx.principal.id,
+        pathPrefix: args.pathPrefix ? String(args.pathPrefix) : undefined,
+        actions,
+        summary: String(args.summary || ""),
+        ttlMs: args.ttlMs ? Number(args.ttlMs) : undefined,
+        uses: args.uses ? Number(args.uses) : undefined,
+      });
+      return JSON.stringify(
+        {
+          approvalId: approval.id,
+          status: approval.status,
+          pathPrefix: approval.pathPrefix || null,
+          actions: approval.actions,
+          expiresAt: new Date(approval.expiresAt).toISOString(),
+          usesLeft: approval.usesLeft,
+          next:
+            approval.status === "pending"
+              ? pendingApprovalNext(approval.id)
+              : "Dev self-approve enabled — ready to use.",
+        },
+        null,
+        2
+      );
+    }
+
     case "code.write": {
       requireCap(ctx, policy, "code.write");
       if (!ctx.principal.write) throw new Error("Principal write=false");
       const path = String(args.path || "");
       const content = String(args.content ?? "");
+      const approvalId = String(args.approvalId || "");
+      if (!approvalId) {
+        throw new Error(
+          "approvalId required. Call code.approval.create, human approves at /operators, then retry."
+        );
+      }
+      const { consumeCodeWriteApproval } = await import(
+        "./adapters/code/approval.js"
+      );
+      consumeCodeWriteApproval({
+        approvalId,
+        principalId: ctx.principal.id,
+        path,
+        action: "code.write",
+      });
+      const written = codeops.writeFile(
+        ctx.principal.allow_paths || [],
+        path,
+        content
+      );
       return JSON.stringify(
-        codeops.writeFile(ctx.principal.allow_paths || [], path, content),
+        {
+          ...written,
+          next: "Source updated on disk. For Next.js go-live: server.approval.create → /operators approve → maintenance.run action=nextjs.build → server.service.restart service=nextjs (brandstory-fe-vps).",
+        },
         null,
         2
       );
@@ -410,14 +473,33 @@ async function dispatch(
       const oldString = String(args.oldString ?? "");
       const newString = String(args.newString ?? "");
       const replaceAll = Boolean(args.replaceAll);
+      const approvalId = String(args.approvalId || "");
+      if (!approvalId) {
+        throw new Error(
+          "approvalId required. Call code.approval.create, human approves at /operators, then retry."
+        );
+      }
+      const { consumeCodeWriteApproval } = await import(
+        "./adapters/code/approval.js"
+      );
+      consumeCodeWriteApproval({
+        approvalId,
+        principalId: ctx.principal.id,
+        path,
+        action: "code.edit",
+      });
+      const edited = codeops.editFile(
+        ctx.principal.allow_paths || [],
+        path,
+        oldString,
+        newString,
+        replaceAll
+      );
       return JSON.stringify(
-        codeops.editFile(
-          ctx.principal.allow_paths || [],
-          path,
-          oldString,
-          newString,
-          replaceAll
-        ),
+        {
+          ...edited,
+          next: "Source updated on disk. For Next.js go-live: server.approval.create → /operators approve → maintenance.run action=nextjs.build → server.service.restart service=nextjs (brandstory-fe-vps).",
+        },
         null,
         2
       );

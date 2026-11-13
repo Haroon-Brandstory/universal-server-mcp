@@ -20,6 +20,7 @@ describe("MCP tool surface compatibility", () => {
       "code.write",
       "code.edit",
       "code.search",
+      "code.approval.create",
       "policy.explain",
       "audit.tail",
       "git.repo.list",

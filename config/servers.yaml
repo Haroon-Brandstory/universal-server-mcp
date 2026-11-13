@@ -62,6 +62,9 @@ servers:
     approved_maintenance:
       - cache.clear
       - nginx.reload
+      - maintenance.run
+      - nextjs.build
+      - service.restart
     monitoring:
       ssl_hosts:
         - brandstoryglobal.com
@@ -91,6 +94,9 @@ servers:
     approved_maintenance:
       - cache.clear
       - nginx.reload
+      - maintenance.run
+      - strapi.build
+      - service.restart
     monitoring:
       ssl_hosts:
         - brandstoryglobal.com
