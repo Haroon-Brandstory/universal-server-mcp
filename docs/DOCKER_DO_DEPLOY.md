@@ -138,11 +138,23 @@ Approvals: `https://mcp.brandstoryglobal.com/operators` + `MCP_OPERATOR_TOKEN` (
 |---|---|
 | `config/:ro` | policy / projects / servers |
 | named volume `/data` | audit, oauth store, metrics |
-| `/var/www/html/global-brandstory:ro` | CodeOps FE |
-| `/var/www/html/global-backend/bsd-strapi:ro` | CodeOps BE |
+| `/var/www/html/global-brandstory:rw` | Live CodeOps FE |
+| `/var/www/html/global-backend/bsd-strapi:rw` | Live CodeOps BE |
 | `network_mode: host` | hit Next `:3000` / Strapi `:1337` on same box |
+| `group_add: ["33"]` | www-data gid — write into group-writable app dirs |
 
-Writes to app trees from MCP are **blocked** by `:ro` until you intentionally remount `rw` + use approvals — keep RO for first smoke.
+### Host perms (required for live edits)
+
+Container UID `10001` + group `www-data` (33). Make app trees group-writable:
+
+```bash
+sudo chgrp -R www-data /var/www/html/global-brandstory /var/www/html/global-backend/bsd-strapi
+sudo chmod -R g+rwX /var/www/html/global-brandstory /var/www/html/global-backend/bsd-strapi
+# optional sticky group:
+sudo find /var/www/html/global-brandstory /var/www/html/global-backend/bsd-strapi -type d -exec chmod g+s {} \;
+```
+
+OAuth clients (`oauth-remote`) get `code.write` / `code.edit` under `allow_paths` only. Prefer Cursor Bearer `MCP_API_KEY` for heavy edits. Git/deploy still need GitHub App + `/operators`.
 
 ---
 

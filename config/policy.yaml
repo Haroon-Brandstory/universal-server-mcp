@@ -217,8 +217,10 @@ principals:
     oauth_operator: true
     max_response_bytes: 1024
 
+  # Grok/Cursor OAuth — live CodeOps write under allow_paths only (Docker mounts rw).
+  # Still no deploy/git write here; those need approvalId + GitHub App.
   - id: oauth-remote
-    roles: [remote_readonly]
+    roles: [remote_editor]
     projects: [brandstory-fe, brandstory-be]
     allow_hosts: []
     allow_paths: []
@@ -233,6 +235,8 @@ principals:
       - approvals.list
       - code.list
       - code.read
+      - code.write
+      - code.edit
       - code.search
       - git.repo.list
       - git.repo.info
@@ -284,7 +288,7 @@ principals:
       - platform.info
       - platform.projects
     allow_methods: [GET, HEAD, OPTIONS]
-    write: false
+    write: true
     admin: false
     oauth_allowed: true
     oauth_operator: false

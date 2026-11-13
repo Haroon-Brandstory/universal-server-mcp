@@ -10,7 +10,8 @@ See `docs/BSD_GLOBAL_MCP.md`. Do not add other sites here.
 ## Hard rules
 - Default deny. No host/capability/path → deny.
 - Auth fail-closed. Never soft-allow anonymous stdio/HTTP.
-- Writes: `*.approval.create` → pending → human approves at `/operators` (`MCP_OPERATOR_TOKEN`) → tell agent approved → consume `approvalId`. Never put operator token in chat. See `docs/OPERATORS.md`.
+- Live CodeOps: `code.write` / `code.edit` allowed on VPS allow_paths (Docker rw mounts). Stay inside FE/BE roots only.
+- Git/build/server/db/deploy writes: `*.approval.create` → pending → human approves at `/operators` (`MCP_OPERATOR_TOKEN`) → tell agent approved → consume `approvalId`. Never put operator token in chat. See `docs/OPERATORS.md`.
 - OAuth: operator consent required; tokens only to `oauth_allowed` principals.
 - Browser sessions bound to principal — no cross-principal access.
 - Never add unrestricted `eval`, raw shell, cookie dump, or arbitrary remote shell tools.

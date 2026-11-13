@@ -41,12 +41,15 @@ services:
       MCP_METRICS_PATH: /data/logs/metrics.jsonl
       MCP_OAUTH_STORE_PATH: /data/oauth-store.json
       MCP_BUILD_WORK_ROOT: /data/build-workspaces
+    # www-data (gid 33) so CodeOps can write host app trees when dirs are group-writable
+    group_add:
+      - "33"
     volumes:
       - ../../config:/app/config:ro
       - bsd-global-mcp-data:/data
-      # CodeOps — same paths as projects.yaml on the droplet
-      - /var/www/html/global-brandstory:/var/www/html/global-brandstory:ro
-      - /var/www/html/global-backend/bsd-strapi:/var/www/html/global-backend/bsd-strapi:ro
+      # Live CodeOps — rw into VPS app trees (path-jailed by policy)
+      - /var/www/html/global-brandstory:/var/www/html/global-brandstory:rw
+      - /var/www/html/global-backend/bsd-strapi:/var/www/html/global-backend/bsd-strapi:rw
     security_opt:
       - no-new-privileges:true
     cap_drop:
