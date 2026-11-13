@@ -23,8 +23,9 @@ services:
     restart: unless-stopped
     # Same network namespace as host → health to :3000/:1337 + bind 127.0.0.1:7337
     network_mode: host
-    # Match host app user so PM2_HOME + nvm bins work (from .env.pm2)
-    user: "${MCP_HOST_UID:-10001}:${MCP_HOST_GID:-10001}"
+    # Keep image user 10001 — owns /data volume (oauth-store + audit). Do NOT switch to
+    # bsdglobal uid or OAuth /token returns 500 (EACCES on /data).
+    user: "10001:10001"
     read_only: true
     tmpfs:
       - /tmp:size=64m,mode=1777
@@ -57,9 +58,10 @@ services:
       PM2_HOME: ${MCP_HOST_HOME:-/home/bsdglobal}/.pm2
       PATH: /host-nodejs/bin:/usr/local/sbin:/usr/bin:/bin
       BSD_PM2_HOME_USER: ${MCP_HOST_HOME:-/home/bsdglobal}
-    # www-data (gid 33) so CodeOps can write host app trees when dirs are group-writable
+    # www-data (33) = CodeOps writes; MCP_HOST_GID = talk to host PM2_HOME
     group_add:
       - "33"
+      - "${MCP_HOST_GID:-33}"
     volumes:
       - ../../config:/app/config:ro
       - bsd-global-mcp-data:/data

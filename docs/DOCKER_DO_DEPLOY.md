@@ -143,7 +143,8 @@ Approvals: `https://mcp.brandstoryglobal.com/operators` + `MCP_OPERATOR_TOKEN` (
 | `network_mode: host` | hit Next `:3000` / Strapi `:1337` on same box |
 | `group_add: ["33"]` | www-data gid — write into group-writable app dirs |
 | `/usr/local/sbin/bsd-pm2` + `/host-nodejs/bin` + `~/.pm2` | PM2 restart + `npm run build` from container |
-| `user: MCP_HOST_UID` | same uid as `bsdglobal` so PM2 daemon socket works |
+| `user: 10001:10001` | owns `/data` (oauth-store + audit) — never switch to bsdglobal uid |
+| `group_add: MCP_HOST_GID` + ACL on `~/.pm2` | MCP talks to host PM2 without stealing /data ownership |
 
 ### Host PM2 bridge (required for Grok go-live)
 
@@ -187,4 +188,5 @@ OAuth clients (`oauth-remote`) get `code.write` / `code.edit` under `allow_paths
 | code.list deny path | mounts match `projects.yaml` allow_paths |
 | certbot fail | `dig +short mcp.brandstoryglobal.com` = droplet IP; ports 80/443 open |
 | `spawn pm2 ENOENT` | run `install-pm2-bridge.sh`; recreate with `--env-file deploy/docker/.env.pm2` |
-| pm2 empty list | `MCP_HOST_UID` must match `id -u bsdglobal`; `PM2_HOME` mounted rw |
+| pm2 empty list | ACL on `~/.pm2` for uid 10001; `PM2_HOME` mounted rw |
+| `/token` 500 or `EACCES ... /data` | `sudo bash deploy/host/repair-mcp-data-perms.sh` then recreate as `user: 10001:10001` |

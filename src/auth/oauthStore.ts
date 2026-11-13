@@ -85,10 +85,19 @@ export class DurableOAuthStore {
   }
 
   private persist(): void {
-    mkdirSync(dirname(this.path), { recursive: true });
-    const tmp = `${this.path}.${randomUUID()}.tmp`;
-    writeFileSync(tmp, JSON.stringify(this.data, null, 2), "utf8");
-    renameSync(tmp, this.path);
+    try {
+      mkdirSync(dirname(this.path), { recursive: true });
+      const tmp = `${this.path}.${randomUUID()}.tmp`;
+      writeFileSync(tmp, JSON.stringify(this.data, null, 2), "utf8");
+      renameSync(tmp, this.path);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `OAuth store persist failed (${this.path}): ${msg}. ` +
+          `If EACCES: container must run as uid 10001 and own the /data volume ` +
+          `(sudo bash deploy/host/repair-mcp-data-perms.sh).`
+      );
+    }
   }
 
   reload(): void {
