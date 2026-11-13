@@ -129,6 +129,10 @@ export interface DeployApproval {
   commitSha: string;
   workflow: string;
   action: "production" | "rollback";
+  summary: string;
+  /** Operator UI must approve before consume (dual auth). */
+  status: "pending" | "approved" | "denied";
   expiresAt: number;
   used: boolean;
+  createdAt: number;
 }

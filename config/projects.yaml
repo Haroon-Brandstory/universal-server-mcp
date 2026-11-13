@@ -1,24 +1,26 @@
-# Universal project registry — add projects here without editing gateway core.
-# Merged into policy.projects by id (overlays fields). Secrets never live here.
+# BSD Global only — Next.js FE + Strapi BE. No other sites on this gateway.
 version: 1
 projects:
   - id: brandstory-fe
     name: Brandstory Frontend
-    description: Next.js marketing/app frontend
+    description: Next.js site (global-brandstory)
     stack_profile: nextjs
     allow_hosts:
       - localhost
       - 127.0.0.1
       - "[::1]"
-      # Public tunnel of local Next (ngrok http 3000) — for Render/Grok http.request
-      - unaware-paced-unvocal.ngrok-free.dev
+      - brandstoryglobal.com
+      - www.brandstoryglobal.com
     allow_paths:
+      # DigitalOcean VPS (MCP runs on same host)
+      - /var/www/html/global-brandstory
+      # Laptop checkout (Cursor local MCP)
       - /Users/brandstorydigital/Documents/projects/work/global-brandstory
     github_repos:
       - brandstorydigital/global-brandstory
     server_ids:
       - brandstory-fe-dev
-      - brandstory-fe-staging
+      - brandstory-fe-vps
     deploy_project_id: brandstory-fe-deploy
     security_target_ids:
       - brandstory-fe-sec
@@ -26,7 +28,6 @@ projects:
     authorized_clients:
       - local-dev
       - oauth-remote
-      - global-server-mcp-grok
     build:
       network: none
       approved_tasks:
@@ -45,21 +46,24 @@ projects:
 
   - id: brandstory-be
     name: Brandstory Backend (Strapi)
-    description: Strapi CMS / API
+    description: Strapi CMS / API (bsd-strapi)
     stack_profile: strapi
     allow_hosts:
       - localhost
       - 127.0.0.1
       - "[::1]"
-      # Public tunnel of local Strapi (cloudflared → :1337) — for Render/Grok
-      - ranking-inspections-bio-selective.trycloudflare.com
+      - brandstoryglobal.com
+      - www.brandstoryglobal.com
     allow_paths:
+      # DigitalOcean VPS (MCP runs on same host)
+      - /var/www/html/global-backend/bsd-strapi
+      # Laptop checkout (Cursor local MCP)
       - /Users/brandstorydigital/Documents/projects/work/bsd-strapi
     github_repos:
       - brandstorydigital/bsd-strapi
     server_ids:
       - brandstory-be-dev
-      - brandstory-be-staging
+      - brandstory-be-vps
     database_ids:
       - brandstory-be-pg-dev
     deploy_project_id: brandstory-be-deploy
@@ -69,7 +73,6 @@ projects:
     authorized_clients:
       - local-dev
       - oauth-remote
-      - global-server-mcp-grok
     build:
       network: none
       approved_tasks:

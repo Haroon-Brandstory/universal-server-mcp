@@ -38,6 +38,11 @@ console.log(`Running ${files.length} test files…`);
 const result = spawnSync(
   process.execPath,
   ["--import", "tsx", "--test", ...files],
-  { stdio: "inherit", cwd: root, env: process.env }
+  {
+    stdio: "inherit",
+    cwd: root,
+    // Unit tests consume approvals immediately; production stays pending→/operators.
+    env: { ...process.env, MCP_ALLOW_DEV_SELF_APPROVE: "true" },
+  }
 );
 process.exit(result.status ?? 1);

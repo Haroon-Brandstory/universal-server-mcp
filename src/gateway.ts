@@ -525,6 +525,23 @@ async function dispatch(
       );
     }
 
+    case "approvals.list": {
+      requireCap(ctx, policy, "approvals.list");
+      const { listOperatorApprovals } = await import(
+        "./auth/operatorApprovals.js"
+      );
+      const { operatorsPublicUrl } = await import("./auth/operatorToken.js");
+      return JSON.stringify(
+        {
+          operatorsUrl: operatorsPublicUrl(),
+          approvals: listOperatorApprovals(),
+          hint: "Pending items need a human at /operators with MCP_OPERATOR_TOKEN. After approve, tell the agent to proceed — never put the operator token in chat.",
+        },
+        null,
+        2
+      );
+    }
+
     case "git.approval.create": {
       requireCap(ctx, policy, "git.approval.create");
       return JSON.stringify(

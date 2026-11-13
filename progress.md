@@ -9,16 +9,16 @@
 - Workflow gate tests (`workflowPipeline`) — prod dispatch stays false
 - Reports: `PHASE9_14_IMPLEMENTATION_REPORT.md`, `MCP_PRODUCTION_READINESS.md`, etc.
 
-## Next
-- [ ] Init/push git remote; confirm CI green
-- [ ] Operator: TLS domain, GitHub App, staging SSH/DB RO roles
-- [ ] Record first verified client E2E
-- [ ] External IdP / mTLS AuthN
-- [ ] OpenAPI invoker
-- [ ] Shared locks for multi-replica gateway
-- [ ] CMS page create tools / vision / page.screenshot
+## Next (feat/bsd-global-mcp)
+- [ ] On droplet: Docker up + nginx/certbot for mcp.brandstoryglobal.com
+- [ ] Smoke healthz + /operators + Cursor Bearer MCP_API_KEY
+- [ ] Record first verified client E2E on this site only
+- [ ] Optional: Strapi PG readonly env for DatabaseOps
 
 ## Done
+- [x] Docker compose for DO (`deploy/docker/docker-compose.bsd-global.yml` + DOCKER_DO_DEPLOY.md)
+- [x] Branch locked to brandstory FE (Next) + BE (Strapi) + VPS deploy pack
+- [x] Dual-auth operator approvals (`/operators` UI — website-management-mcp pattern)
 - [x] Project scaffold + TypeScript MCP
 - [x] Policy + SSRF + audit + rate limit
 - [x] HTTP + Playwright adapters

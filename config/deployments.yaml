@@ -1,4 +1,4 @@
-# DeployOps registry — no secrets here. Providers use env/App credentials.
+# BSD Global deploy registry — prod dispatch stays off until signed.
 version: 1
 projects:
   - id: brandstory-fe-deploy
@@ -8,20 +8,20 @@ projects:
     known_good_shas: []
     environments:
       - name: staging
-        provider: github_actions
+        provider: vps
         profile: nextjs
-        workflow: deploy-staging.yml
-        repo: brandstorydigital/global-brandstory
+        server_id: brandstory-fe-vps
+        action_id: nextjs.deploy
         health_checks:
-          - url: https://staging.example.com/api/health
+          - url: https://brandstoryglobal.com/
             expect_status: 200
       - name: production
-        provider: github_actions
+        provider: vps
         profile: nextjs
-        workflow: deploy-production.yml
-        repo: brandstorydigital/global-brandstory
+        server_id: brandstory-fe-vps
+        action_id: nextjs.deploy
         health_checks:
-          - url: https://www.example.com/api/health
+          - url: https://www.brandstoryglobal.com/
             expect_status: 200
 
   - id: brandstory-be-deploy
@@ -33,7 +33,7 @@ projects:
       - name: staging
         provider: vps
         profile: strapi
-        server_id: brandstory-be-dev
+        server_id: brandstory-be-vps
         action_id: strapi.deploy
         requires_db_compat: true
         health_checks:
@@ -42,6 +42,9 @@ projects:
       - name: production
         provider: vps
         profile: strapi
-        server_id: brandstory-be-dev
+        server_id: brandstory-be-vps
         action_id: strapi.deploy
         requires_db_compat: true
+        health_checks:
+          - url: http://127.0.0.1:1337/_health
+            expect_status: 200

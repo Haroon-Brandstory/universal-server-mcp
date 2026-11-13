@@ -29,6 +29,7 @@ export const CAPABILITY_CLASS: Record<Capability, CapabilityClass> = {
   "git.pr.status": "read",
   "git.ci.status": "read",
   "git.approval.create": "admin",
+  "approvals.list": "read",
   "build.detect_stack": "read",
   "build.list_tasks": "read",
   "build.status": "read",

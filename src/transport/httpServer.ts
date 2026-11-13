@@ -14,6 +14,7 @@ import {
   grokOAuthClientId,
 } from "../auth/oauthProvider.js";
 import { mountOAuthConsentRoutes } from "../auth/oauthConsent.js";
+import { mountOperatorRoutes } from "./operatorApi.js";
 import {
   createGatewayServer,
   shutdownGatewayResources,
@@ -232,6 +233,9 @@ export async function startHttpGateway(): Promise<void> {
       sessions: sessions.size,
     });
   });
+
+  // Dual-auth operator UI — MCP_OPERATOR_TOKEN, not bot API key
+  mountOperatorRoutes(app);
 
   app.use(
     ["/mcp", "/sse", "/messages", "/metrics"],

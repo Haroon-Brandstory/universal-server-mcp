@@ -33,6 +33,7 @@ describe("MCP tool surface compatibility", () => {
       "git.pr.status",
       "git.ci.status",
       "git.approval.create",
+      "approvals.list",
       "build.detect_stack",
       "build.list_tasks",
       "build.run",

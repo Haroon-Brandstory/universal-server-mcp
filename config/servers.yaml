@@ -1,11 +1,9 @@
-# ServerOps registry.
-# local = curated commands on the MCP host (test Next/Strapi on same machine).
-# ssh = real VPS. mock = unit tests only (injected transport).
-# Never put private keys or passwords in this file.
+# BSD Global only — same-host MCP on DigitalOcean (/opt/bsd-global-mcp).
+# local = curated commands on the MCP host. No multi-tenant SSH fleet.
 version: 1
 servers:
   - id: brandstory-fe-dev
-    label: Brandstory FE (local Next.js)
+    label: Brandstory FE (local Next.js laptop)
     project_id: brandstory-fe
     environment: development
     enabled: true
@@ -21,14 +19,12 @@ servers:
     monitoring:
       ssl_hosts: []
       health_urls:
-        # Local process + public ngrok tunnel of same Next app
         - http://127.0.0.1:3000/
-        - https://unaware-paced-unvocal.ngrok-free.dev/
       log_sources:
         - nextjs
 
   - id: brandstory-be-dev
-    label: Brandstory BE / Strapi (local)
+    label: Brandstory BE / Strapi (local laptop)
     project_id: brandstory-be
     environment: development
     enabled: true
@@ -45,68 +41,62 @@ servers:
       ssl_hosts: []
       health_urls:
         - http://127.0.0.1:1337/_health
-        - https://ranking-inspections-bio-selective.trycloudflare.com/_health
       log_sources:
         - strapi
 
-  # --- Real VPS (SSH) — set enabled: true after host + keys ready ---
-  # Render: set MCP_SSH_KEY_FE_PEM + MCP_SSH_KNOWN_HOSTS_FE (entrypoint writes files).
-  # Or set MCP_SSH_KEY_FE_PATH / MCP_SSH_KNOWN_HOSTS_FE_PATH to absolute file paths.
-  - id: brandstory-fe-staging
-    label: Brandstory FE staging VPS
+  # --- DigitalOcean VPS (MCP on same box as apps) ---
+  - id: brandstory-fe-vps
+    label: Brandstory FE on VPS
     project_id: brandstory-fe
-    environment: staging
-    enabled: false
+    environment: production
+    enabled: true
     connection:
-      method: ssh
-      host: REPLACE_FE_VPS_HOST
+      method: local
+      host: 127.0.0.1
       port: 22
-      user: mcp-ops
-      private_key_path_env: MCP_SSH_KEY_FE_PATH
-      known_hosts_path_env: MCP_SSH_KNOWN_HOSTS_FE_PATH
+      user: local
     services:
-      - nginx
-      - pm2
       - nextjs
-      - systemd
-    approved_maintenance:
-      - cache.clear
-      - nginx.reload
-    monitoring:
-      ssl_hosts:
-        - REPLACE_FE_PUBLIC_HOST
-      health_urls:
-        - https://REPLACE_FE_PUBLIC_HOST/api/health
-      log_sources:
-        - nginx
-        - pm2
-
-  - id: brandstory-be-staging
-    label: Brandstory BE / Strapi staging VPS
-    project_id: brandstory-be
-    environment: staging
-    enabled: false
-    connection:
-      method: ssh
-      host: REPLACE_BE_VPS_HOST
-      port: 22
-      user: mcp-ops
-      private_key_path_env: MCP_SSH_KEY_BE_PATH
-      known_hosts_path_env: MCP_SSH_KNOWN_HOSTS_BE_PATH
-    services:
       - nginx
       - pm2
-      - strapi
-      - postgres
-      - systemd
     approved_maintenance:
       - cache.clear
       - nginx.reload
     monitoring:
       ssl_hosts:
-        - REPLACE_BE_PUBLIC_HOST
+        - brandstoryglobal.com
+        - www.brandstoryglobal.com
       health_urls:
-        - https://REPLACE_BE_PUBLIC_HOST/_health
+        - http://127.0.0.1:3000/
+        - https://brandstoryglobal.com/
+        - https://www.brandstoryglobal.com/
+      log_sources:
+        - nextjs
+        - nginx
+
+  - id: brandstory-be-vps
+    label: Brandstory BE / Strapi on VPS
+    project_id: brandstory-be
+    environment: production
+    enabled: true
+    connection:
+      method: local
+      host: 127.0.0.1
+      port: 22
+      user: local
+    services:
+      - strapi
+      - nginx
+      - pm2
+    approved_maintenance:
+      - cache.clear
+      - nginx.reload
+    monitoring:
+      ssl_hosts:
+        - brandstoryglobal.com
+      health_urls:
+        - http://127.0.0.1:1337/_health
+        - https://brandstoryglobal.com/api/
       log_sources:
         - strapi
         - nginx

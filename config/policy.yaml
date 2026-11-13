@@ -60,51 +60,32 @@ platform:
   revoked_principal_ids: []
   metrics_enabled: true
 
+# Overlay — full project defs live in projects.yaml (BSD Global only).
 projects:
   - id: brandstory-fe
     allow_hosts:
       - localhost
       - 127.0.0.1
       - "[::1]"
+      - brandstoryglobal.com
+      - www.brandstoryglobal.com
     allow_paths:
+      - /var/www/html/global-brandstory
       - /Users/brandstorydigital/Documents/projects/work/global-brandstory
     github_repos:
       - brandstorydigital/global-brandstory
-    build:
-      network: none
-      approved_tasks:
-        - node.install
-        - node.build
-        - node.test
-        - node.lint
-        - node.typecheck
-        - node.file.test
-      approved_test_tasks:
-        - node.test
-        - node.file.test
-      resource_limits:
-        timeout_sec: 300
-        memory_mb: 2048
   - id: brandstory-be
     allow_hosts:
       - localhost
       - 127.0.0.1
       - "[::1]"
+      - brandstoryglobal.com
+      - www.brandstoryglobal.com
     allow_paths:
+      - /var/www/html/global-backend/bsd-strapi
       - /Users/brandstorydigital/Documents/projects/work/bsd-strapi
     github_repos:
       - brandstorydigital/bsd-strapi
-    build:
-      network: none
-      approved_tasks:
-        - node.install
-        - node.build
-        - node.test
-        - node.lint
-        - node.typecheck
-      resource_limits:
-        timeout_sec: 300
-        memory_mb: 2048
 
 github:
   deny_commit_branches: [main, master, production, prod, release]
@@ -153,6 +134,7 @@ principals:
       - git.pr.status
       - git.ci.status
       - git.approval.create
+      - approvals.list
       - build.detect_stack
       - build.list_tasks
       - build.run
@@ -248,6 +230,7 @@ principals:
       - session.create
       - session.close
       - policy.explain
+      - approvals.list
       - code.list
       - code.read
       - code.search

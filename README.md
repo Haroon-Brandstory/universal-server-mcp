@@ -1,4 +1,7 @@
-# global-server-mcp
+# global-server-mcp (`feat/bsd-global-mcp`)
+
+**This branch = Brandstory Global only** (Next FE + Strapi BE).  
+Live: `https://mcp.brandstoryglobal.com` · install `/opt/bsd-global-mcp` · [docs/BSD_GLOBAL_MCP.md](docs/BSD_GLOBAL_MCP.md)
 
 Universal **MCP Platform** — policy-gated WebOps → DeployOps for multiple AI clients, projects, and stacks.
 
@@ -63,6 +66,7 @@ npm run dev:http
 | `GET /sse` + `POST /messages` | Legacy HTTP+SSE |
 | `GET /healthz` | Health (no auth, minimal) |
 | `GET/POST /oauth/consent` | Operator OAuth consent |
+| `GET /operators` | Dual-auth write approvals (human + `MCP_OPERATOR_TOKEN`) |
 
 Auth header on every MCP request:
 

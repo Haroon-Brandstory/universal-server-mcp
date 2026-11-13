@@ -1,4 +1,8 @@
 import { randomUUID } from "node:crypto";
+import {
+  assertOperatorApproved,
+  initialApprovalStatus,
+} from "../../auth/operatorToken.js";
 
 export type DbApprovalAction =
   | "migration.apply"
@@ -13,8 +17,11 @@ export type DbApproval = {
   actions: DbApprovalAction[];
   /** Required for destructive migration.apply when policy demands. */
   backupVerifiedId?: string;
+  summary: string;
+  status: "pending" | "approved" | "denied";
   expiresAt: number;
   usesLeft: number;
+  createdAt: number;
 };
 
 const store = new Map<string, DbApproval>();
@@ -22,7 +29,9 @@ const store = new Map<string, DbApproval>();
 function purge(): void {
   const now = Date.now();
   for (const [id, a] of store) {
-    if (a.expiresAt < now || a.usesLeft <= 0) store.delete(id);
+    if (a.expiresAt < now || a.usesLeft <= 0 || a.status === "denied") {
+      store.delete(id);
+    }
   }
 }
 
@@ -32,21 +41,28 @@ export function createDbApproval(input: {
   environment: string;
   actions?: DbApprovalAction[];
   backupVerifiedId?: string;
+  summary?: string;
   ttlMs?: number;
   uses?: number;
 }): DbApproval {
   purge();
+  const actions = input.actions?.length
+    ? input.actions
+    : (["migration.apply"] as DbApprovalAction[]);
   const a: DbApproval = {
     id: randomUUID(),
     principalId: input.principalId,
     connectionId: input.connectionId,
     environment: input.environment,
-    actions: input.actions?.length
-      ? input.actions
-      : ["migration.apply"],
+    actions,
     backupVerifiedId: input.backupVerifiedId,
+    summary:
+      input.summary?.slice(0, 500) ||
+      `DB ${input.connectionId}/${input.environment}: ${actions.join(", ")}`,
+    status: initialApprovalStatus(),
     expiresAt: Date.now() + (input.ttlMs ?? 15 * 60_000),
     usesLeft: Math.min(Math.max(input.uses ?? 3, 1), 20),
+    createdAt: Date.now(),
   };
   store.set(a.id, a);
   return { ...a };
@@ -74,6 +90,7 @@ export function consumeDbApproval(input: {
     store.delete(input.approvalId);
     throw new Error("Invalid or expired database approval");
   }
+  assertOperatorApproved(a.status);
   if (a.principalId !== input.principalId) {
     throw new Error("Database approval principal mismatch");
   }
@@ -96,6 +113,34 @@ export function consumeDbApproval(input: {
   a.usesLeft -= 1;
   if (a.usesLeft <= 0) store.delete(a.id);
   else store.set(a.id, a);
+  return { ...a };
+}
+
+export function listDbApprovalsForOperator(): DbApproval[] {
+  purge();
+  return [...store.values()].filter(
+    (a) =>
+      a.expiresAt > Date.now() &&
+      a.usesLeft > 0 &&
+      a.status !== "denied"
+  );
+}
+
+export function setDbApprovalOperatorStatus(
+  id: string,
+  status: "approved" | "denied"
+): DbApproval {
+  purge();
+  const a = store.get(id);
+  if (!a || a.expiresAt < Date.now() || a.usesLeft <= 0) {
+    throw new Error("Approval is missing or expired");
+  }
+  if (a.status === "denied") {
+    throw new Error("Approval is already denied");
+  }
+  a.status = status;
+  if (status === "denied") a.usesLeft = 0;
+  store.set(a.id, a);
   return { ...a };
 }
 

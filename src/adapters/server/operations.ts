@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { PolicyDocument, Principal } from "../../types.js";
+import {
+  pendingApprovalNext,
+  requireOperatorTokenConfigured,
+} from "../../auth/operatorToken.js";
 import { redactText } from "../../security/redact.js";
 import {
   getAccessibleServer,
@@ -556,6 +560,7 @@ export function approvalCreate(
   if (String(args.confirmEnvironment || "") !== server.environment) {
     throw new Error("confirmEnvironment must match server environment");
   }
+  requireOperatorTokenConfigured();
   const a = createServerApproval({
     principalId: principal.id,
     serverId: server.id,
@@ -563,6 +568,7 @@ export function approvalCreate(
     actions: Array.isArray(args.actions)
       ? (args.actions.map(String) as ServerMaintenanceAction[])
       : undefined,
+    summary: args.summary ? String(args.summary) : undefined,
     ttlMs: args.ttlMs ? Number(args.ttlMs) : undefined,
     uses: args.uses ? Number(args.uses) : undefined,
   });
@@ -571,7 +577,12 @@ export function approvalCreate(
     serverId: a.serverId,
     environment: a.environment,
     actions: a.actions,
+    status: a.status,
     expiresAt: new Date(a.expiresAt).toISOString(),
     usesLeft: a.usesLeft,
+    next:
+      a.status === "pending"
+        ? pendingApprovalNext(a.id)
+        : "Dev self-approve enabled — ready to use.",
   };
 }

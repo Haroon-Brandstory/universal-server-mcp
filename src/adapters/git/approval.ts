@@ -1,4 +1,8 @@
 import { randomUUID } from "node:crypto";
+import {
+  assertOperatorApproved,
+  initialApprovalStatus,
+} from "../../auth/operatorToken.js";
 
 export type GitWriteAction =
   | "git.branch.create"
@@ -10,8 +14,11 @@ export type GitWriteApproval = {
   principalId: string;
   repo: string;
   actions: GitWriteAction[];
+  summary: string;
+  status: "pending" | "approved" | "denied";
   expiresAt: number;
   usesLeft: number;
+  createdAt: number;
 };
 
 const store = new Map<string, GitWriteApproval>();
@@ -22,7 +29,9 @@ const DEFAULT_USES = 5;
 function purge(): void {
   const now = Date.now();
   for (const [id, a] of store) {
-    if (a.expiresAt < now || a.usesLeft <= 0) store.delete(id);
+    if (a.expiresAt < now || a.usesLeft <= 0 || a.status === "denied") {
+      store.delete(id);
+    }
   }
 }
 
@@ -30,6 +39,7 @@ export function createGitWriteApproval(input: {
   principalId: string;
   repo: string;
   actions?: GitWriteAction[];
+  summary?: string;
   ttlMs?: number;
   uses?: number;
 }): GitWriteApproval {
@@ -46,13 +56,19 @@ export function createGitWriteApproval(input: {
       throw new Error(`Invalid approval action: ${a}`);
     }
   }
+  const repo = input.repo.toLowerCase();
   const approval: GitWriteApproval = {
     id: randomUUID(),
     principalId: input.principalId,
-    repo: input.repo.toLowerCase(),
+    repo,
     actions,
+    summary:
+      input.summary?.slice(0, 500) ||
+      `Git write on ${repo}: ${actions.join(", ")}`,
+    status: initialApprovalStatus(),
     expiresAt: Date.now() + (input.ttlMs ?? DEFAULT_TTL_MS),
     usesLeft: Math.min(Math.max(input.uses ?? DEFAULT_USES, 1), 20),
+    createdAt: Date.now(),
   };
   store.set(approval.id, approval);
   return { ...approval };
@@ -71,6 +87,7 @@ export function consumeGitWriteApproval(input: {
     store.delete(input.approvalId);
     throw new Error("Invalid or expired git write approval");
   }
+  assertOperatorApproved(a.status);
   if (a.principalId !== input.principalId) {
     throw new Error("Git write approval principal mismatch");
   }
@@ -83,6 +100,34 @@ export function consumeGitWriteApproval(input: {
   a.usesLeft -= 1;
   if (a.usesLeft <= 0) store.delete(input.approvalId);
   else store.set(a.id, a);
+}
+
+export function listGitApprovalsForOperator(): GitWriteApproval[] {
+  purge();
+  return [...store.values()].filter(
+    (a) =>
+      a.expiresAt > Date.now() &&
+      a.usesLeft > 0 &&
+      a.status !== "denied"
+  );
+}
+
+export function setGitApprovalOperatorStatus(
+  id: string,
+  status: "approved" | "denied"
+): GitWriteApproval {
+  purge();
+  const a = store.get(id);
+  if (!a || a.expiresAt < Date.now() || a.usesLeft <= 0) {
+    throw new Error("Approval is missing or expired");
+  }
+  if (a.status === "denied") {
+    throw new Error("Approval is already denied");
+  }
+  a.status = status;
+  if (status === "denied") a.usesLeft = 0;
+  store.set(a.id, a);
+  return { ...a };
 }
 
 /** Test helper */

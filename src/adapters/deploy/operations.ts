@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { PolicyDocument, Principal } from "../../types.js";
+import {
+  pendingApprovalNext,
+  requireOperatorTokenConfigured,
+} from "../../auth/operatorToken.js";
 import { createDeployApproval, consumeDeployApproval } from "./approval.js";
 import { acquireDeployLock, releaseDeployLock } from "./controls.js";
 import { mockHealthOk, runHealthChecks } from "./health.js";
@@ -558,6 +562,7 @@ export function approvalCreate(
   const profile = getDeployProfile(env.profile);
   const workflow = String(args.workflow || env.workflow || profile.defaultActionId);
 
+  requireOperatorTokenConfigured();
   const a = createDeployApproval({
     approverPrincipalId: principal.id,
     requestorPrincipalId,
@@ -567,6 +572,7 @@ export function approvalCreate(
     workflow,
     action: String(args.action || "production") as "production" | "rollback",
     ttlMs: Number(args.ttlMs || policy.deployops?.approval_ttl_ms || 3_600_000),
+    summary: args.summary ? String(args.summary) : undefined,
   });
 
   return {
@@ -578,7 +584,12 @@ export function approvalCreate(
     action: a.action,
     requestorPrincipalId: a.requestorPrincipalId,
     approverPrincipalId: a.approverPrincipalId,
+    status: a.status,
     expiresAt: new Date(a.expiresAt).toISOString(),
+    next:
+      a.status === "pending"
+        ? pendingApprovalNext(a.id)
+        : "Dev self-approve enabled — ready to use.",
   };
 }
 

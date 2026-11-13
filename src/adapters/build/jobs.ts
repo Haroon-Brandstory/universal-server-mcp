@@ -118,6 +118,7 @@ export function createApproval(
     actions: Array.isArray(args.actions)
       ? (args.actions.map(String) as Array<"network" | "install" | "execute">)
       : undefined,
+    summary: args.summary ? String(args.summary) : undefined,
     ttlMs: args.ttlMs ? Number(args.ttlMs) : undefined,
     uses: args.uses ? Number(args.uses) : undefined,
   });

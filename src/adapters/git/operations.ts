@@ -1,6 +1,10 @@
 import type { PolicyDocument, Principal } from "../../types.js";
 import { assertRepoAllowed } from "../../policy/resolvePrincipal.js";
 import {
+  pendingApprovalNext,
+  requireOperatorTokenConfigured,
+} from "../../auth/operatorToken.js";
+import {
   consumeGitWriteApproval,
   createGitWriteApproval,
   type GitWriteAction,
@@ -115,10 +119,12 @@ export function approvalCreate(
   const actions = Array.isArray(args.actions)
     ? (args.actions.map(String) as GitWriteAction[])
     : undefined;
+  requireOperatorTokenConfigured();
   const approval = createGitWriteApproval({
     principalId: principal.id,
     repo: full,
     actions,
+    summary: args.summary ? String(args.summary) : undefined,
     ttlMs: args.ttlMs ? Number(args.ttlMs) : undefined,
     uses: args.uses ? Number(args.uses) : undefined,
   });
@@ -126,8 +132,13 @@ export function approvalCreate(
     approvalId: approval.id,
     repo: approval.repo,
     actions: approval.actions,
+    status: approval.status,
     expiresAt: new Date(approval.expiresAt).toISOString(),
     usesLeft: approval.usesLeft,
+    next:
+      approval.status === "pending"
+        ? pendingApprovalNext(approval.id)
+        : "Dev self-approve enabled — ready to use.",
   };
 }
 

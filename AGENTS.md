@@ -1,11 +1,16 @@
 # AGENTS.md — global-server-mcp
 
 ## Purpose
-Policy-gated universal MCP platform (WebOps→DeployOps). Agents get tools after AuthN/AuthZ + SSRF + audit. Add projects via `config/projects.yaml` — do not edit gateway core for onboarding.
+Policy-gated MCP gateway. **This branch (`feat/bsd-global-mcp`)** is locked to **Brandstory Global** only:
+- FE Next.js → `/var/www/html/global-brandstory` (local: `…/global-brandstory`)
+- BE Strapi → `/var/www/html/global-backend/bsd-strapi` (local: `…/bsd-strapi`)
+- Public MCP: `mcp.brandstoryglobal.com` · install root `/opt/bsd-global-mcp`
+See `docs/BSD_GLOBAL_MCP.md`. Do not add other sites here.
 
 ## Hard rules
 - Default deny. No host/capability/path → deny.
 - Auth fail-closed. Never soft-allow anonymous stdio/HTTP.
+- Writes: `*.approval.create` → pending → human approves at `/operators` (`MCP_OPERATOR_TOKEN`) → tell agent approved → consume `approvalId`. Never put operator token in chat. See `docs/OPERATORS.md`.
 - OAuth: operator consent required; tokens only to `oauth_allowed` principals.
 - Browser sessions bound to principal — no cross-principal access.
 - Never add unrestricted `eval`, raw shell, cookie dump, or arbitrary remote shell tools.

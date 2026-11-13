@@ -20,8 +20,9 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/run-tests.mjs",
     "ci": "npm run typecheck && npm test && npm run build",
-    "docker:build": "docker build -t global-server-mcp:local .",
+    "docker:build": "docker build -t bsd-global-mcp:latest .",
     "docker:up": "docker compose up -d --build",
+    "docker:up:bsd": "docker compose -f deploy/docker/docker-compose.bsd-global.yml --env-file /etc/bsd-global-mcp/env up -d --build",
     "audit:deps": "npm audit --audit-level=high"
   },
   "keywords": [

@@ -1,12 +1,16 @@
 import { randomUUID } from "node:crypto";
 import type { DeployApproval } from "./types.js";
+import {
+  assertOperatorApproved,
+  initialApprovalStatus,
+} from "../../auth/operatorToken.js";
 
 const store = new Map<string, DeployApproval>();
 
 function purge(): void {
   const now = Date.now();
   for (const [id, a] of store) {
-    if (a.expiresAt < now || a.used) store.delete(id);
+    if (a.expiresAt < now || a.used || a.status === "denied") store.delete(id);
   }
 }
 
@@ -19,6 +23,7 @@ export function createDeployApproval(input: {
   workflow: string;
   action: "production" | "rollback";
   ttlMs: number;
+  summary?: string;
 }): DeployApproval {
   purge();
   if (input.approverPrincipalId === input.requestorPrincipalId) {
@@ -38,8 +43,13 @@ export function createDeployApproval(input: {
     commitSha: input.commitSha.toLowerCase(),
     workflow: input.workflow,
     action: input.action,
+    summary:
+      input.summary?.slice(0, 500) ||
+      `Deploy ${input.action} ${input.projectId}/${input.environment} @ ${input.commitSha.slice(0, 7)}`,
+    status: initialApprovalStatus(),
     expiresAt: Date.now() + Math.min(Math.max(input.ttlMs, 60_000), 24 * 3600_000),
     used: false,
+    createdAt: Date.now(),
   };
   store.set(a.id, a);
   return { ...a };
@@ -62,6 +72,7 @@ export function consumeDeployApproval(input: {
     store.delete(a.id);
     throw new Error("Deploy approval expired");
   }
+  assertOperatorApproved(a.status);
   if (a.requestorPrincipalId !== input.requestorPrincipalId) {
     throw new Error("Deploy approval requestor mismatch");
   }
@@ -84,6 +95,31 @@ export function consumeDeployApproval(input: {
     throw new Error("Deploy approval action mismatch");
   }
   a.used = true;
+  store.set(a.id, a);
+  return { ...a };
+}
+
+export function listDeployApprovalsForOperator(): DeployApproval[] {
+  purge();
+  return [...store.values()].filter(
+    (a) => a.expiresAt > Date.now() && !a.used && a.status !== "denied"
+  );
+}
+
+export function setDeployApprovalOperatorStatus(
+  id: string,
+  status: "approved" | "denied"
+): DeployApproval {
+  purge();
+  const a = store.get(id);
+  if (!a || a.expiresAt < Date.now() || a.used) {
+    throw new Error("Approval is missing or expired");
+  }
+  if (a.status === "denied") {
+    throw new Error("Approval is already denied");
+  }
+  a.status = status;
+  if (status === "denied") a.used = true;
   store.set(a.id, a);
   return { ...a };
 }

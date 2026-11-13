@@ -1,0 +1,68 @@
+# DigitalOcean — BSD Global MCP only
+# Install root: /opt/bsd-global-mcp
+# Nginx on host → 127.0.0.1:7337 → this container (host network)
+#
+# Usage:
+#   cd /opt/bsd-global-mcp
+#   cp deploy/env.bsd-global.example /etc/bsd-global-mcp/env   # fill secrets
+#   docker compose -f deploy/docker/docker-compose.bsd-global.yml --env-file /etc/bsd-global-mcp/env up -d --build
+
+services:
+  bsd-global-mcp:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: bsd-global-mcp:latest
+    container_name: bsd-global-mcp
+    restart: unless-stopped
+    # Same network namespace as host → health to :3000/:1337 + bind 127.0.0.1:7337
+    network_mode: host
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    env_file:
+      - /etc/bsd-global-mcp/env
+    environment:
+      NODE_ENV: production
+      MCP_TRANSPORT: http
+      MCP_HTTP_HOST: "127.0.0.1"
+      MCP_HTTP_PORT: "7337"
+      MCP_ALLOW_TUNNEL_HOSTS: "0"
+      MCP_TRUST_PROXY: "1"
+      MCP_POLICY_PATH: /app/config/policy.yaml
+      MCP_PROJECTS_PATH: /app/config/projects.yaml
+      MCP_SERVERS_PATH: /app/config/servers.yaml
+      MCP_DATABASES_PATH: /app/config/databases.yaml
+      MCP_SECURITY_TARGETS_PATH: /app/config/security.yaml
+      MCP_DEPLOYMENTS_PATH: /app/config/deployments.yaml
+      MCP_STACK_PROFILES_PATH: /app/config/stack-profiles.yaml
+      MCP_AUDIT_PATH: /data/logs/audit.jsonl
+      MCP_METRICS_PATH: /data/logs/metrics.jsonl
+      MCP_OAUTH_STORE_PATH: /data/oauth-store.json
+      MCP_BUILD_WORK_ROOT: /data/build-workspaces
+    volumes:
+      - ../../config:/app/config:ro
+      - bsd-global-mcp-data:/data
+      # CodeOps — same paths as projects.yaml on the droplet
+      - /var/www/html/global-brandstory:/var/www/html/global-brandstory:ro
+      - /var/www/html/global-backend/bsd-strapi:/var/www/html/global-backend/bsd-strapi:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:7337/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+volumes:
+  bsd-global-mcp-data:

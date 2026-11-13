@@ -316,14 +316,24 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
+    name: "approvals.list",
+    description:
+      "List unused git/build/server/db/deploy approvals (pending or operator-approved). After creating an approval, tell the human to open /operators, approve with MCP_OPERATOR_TOKEN, then say approved — never invent the operator token.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
     name: "git.approval.create",
     description:
-      "Admin: issue a short-lived write approval for branch/commit/PR tools on one repo.",
+      "Request a short-lived write approval for branch/commit/PR on one repo. Returns status pending until a human approves at /operators with MCP_OPERATOR_TOKEN. Then tell the agent to proceed with approvalId. AI cannot self-approve.",
     inputSchema: {
       type: "object",
       required: ["repo"],
       properties: {
         repo: { type: "string" },
+        summary: {
+          type: "string",
+          description: "Human-readable reason shown on /operators",
+        },
         actions: {
           type: "array",
           items: {
@@ -442,7 +452,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "build.approval.create",
     description:
-      "Admin: short-lived approval for network/install/execute build tasks on one project.",
+      "Request short-lived approval for network/install/execute build tasks. Pending until human approves at /operators; then tell agent to proceed with approvalId.",
     inputSchema: {
       type: "object",
       required: ["projectId"],
@@ -630,7 +640,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "server.approval.create",
     description:
-      "Admin: short-lived maintenance approval for one server + environment.",
+      "Request short-lived maintenance approval for one server + environment. Pending until human approves at /operators; then tell agent to proceed with approvalId.",
     inputSchema: {
       type: "object",
       required: ["serverId", "confirmEnvironment"],
@@ -801,7 +811,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "db.approval.create",
     description:
-      "Admin: short-lived DB migration/backup/restore approval for one connection.",
+      "Request short-lived DB migration/backup/restore approval. Pending until human approves at /operators; then tell agent to proceed with approvalId.",
     inputSchema: {
       type: "object",
       required: ["connectionId", "confirmEnvironment"],
@@ -1066,7 +1076,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "deploy.approval.create",
     description:
-      "Human deploy_approver only: bind approval to requestor + project + environment + commitSha + workflow. Cannot approve self.",
+      "Human deploy_approver only: bind approval to requestor + project + environment + commitSha + workflow. Cannot self-approve. Still pending until operator approves at /operators; then tell agent to proceed with approvalId.",
     inputSchema: {
       type: "object",
       required: [

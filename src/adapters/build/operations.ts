@@ -1,4 +1,8 @@
 import type { PolicyDocument, Principal } from "../../types.js";
+import {
+  pendingApprovalNext,
+  requireOperatorTokenConfigured,
+} from "../../auth/operatorToken.js";
 import * as jobs from "./jobs.js";
 
 export function detectStack(
@@ -85,12 +89,18 @@ export function approvalCreate(
   principal: Principal,
   args: Record<string, unknown>
 ) {
+  requireOperatorTokenConfigured();
   const a = jobs.createApproval(principal, String(args.projectId || ""), args);
   return {
     approvalId: a.id,
     projectId: a.projectId,
     actions: a.actions,
+    status: a.status,
     expiresAt: new Date(a.expiresAt).toISOString(),
     usesLeft: a.usesLeft,
+    next:
+      a.status === "pending"
+        ? pendingApprovalNext(a.id)
+        : "Dev self-approve enabled — ready to use.",
   };
 }
