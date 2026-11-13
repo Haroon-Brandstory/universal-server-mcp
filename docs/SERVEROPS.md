@@ -34,6 +34,8 @@ Each server: `id`, `project_id`, `environment`, `connection`, `services`, `appro
 
 Extensible in `src/adapters/server/profiles.ts`: nginx, apache, systemd, pm2, docker, nextjs, strapi, postgres.
 
+BSD Global Docker: set `MCP_PM2_BIN` / `MCP_NPM_BIN` / `MCP_PM2_NEXTJS_NAME` / `MCP_PM2_STRAPI_NAME` (defaults `frontend-nextjs`, `strapi-backend`). Host bridge: `deploy/host/install-pm2-bridge.sh`.
+
 Register more with `registerServiceProfile()` — no gateway change.
 
 ## Maintenance controls

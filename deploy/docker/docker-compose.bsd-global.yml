@@ -2,10 +2,16 @@
 # Install root: /opt/bsd-global-mcp
 # Nginx on host → 127.0.0.1:7337 → this container (host network)
 #
+# PM2 bridge (required for Grok/Cursor restart + nextjs.build):
+#   sudo bash deploy/host/install-pm2-bridge.sh
+#   # append printed MCP_PM2_* lines into /etc/bsd-global-mcp/env
+#   docker compose -f deploy/docker/docker-compose.bsd-global.yml \
+#     --env-file deploy/docker/.env.pm2 up -d --build
+#
 # Usage:
 #   cd /opt/bsd-global-mcp
-#   cp deploy/env.bsd-global.example /etc/bsd-global-mcp/env   # fill secrets
-#   docker compose -f deploy/docker/docker-compose.bsd-global.yml --env-file /etc/bsd-global-mcp/env up -d --build
+#   docker compose -f deploy/docker/docker-compose.bsd-global.yml \
+#     --env-file deploy/docker/.env.pm2 up -d --build
 
 services:
   bsd-global-mcp:
@@ -17,7 +23,8 @@ services:
     restart: unless-stopped
     # Same network namespace as host → health to :3000/:1337 + bind 127.0.0.1:7337
     network_mode: host
-    user: "10001:10001"
+    # Match host app user so PM2_HOME + nvm bins work (from .env.pm2)
+    user: "${MCP_HOST_UID:-10001}:${MCP_HOST_GID:-10001}"
     read_only: true
     tmpfs:
       - /tmp:size=64m,mode=1777
@@ -41,6 +48,15 @@ services:
       MCP_METRICS_PATH: /data/logs/metrics.jsonl
       MCP_OAUTH_STORE_PATH: /data/oauth-store.json
       MCP_BUILD_WORK_ROOT: /data/build-workspaces
+      # Host PM2 / npm (override in /etc/bsd-global-mcp/env if needed)
+      MCP_PM2_BIN: ${MCP_PM2_BIN:-/usr/local/sbin/bsd-pm2}
+      MCP_NPM_BIN: ${MCP_NPM_BIN:-/host-nodejs/bin/npm}
+      MCP_PM2_NEXTJS_NAME: ${MCP_PM2_NEXTJS_NAME:-frontend-nextjs}
+      MCP_PM2_STRAPI_NAME: ${MCP_PM2_STRAPI_NAME:-strapi-backend}
+      HOME: ${MCP_HOST_HOME:-/home/bsdglobal}
+      PM2_HOME: ${MCP_HOST_HOME:-/home/bsdglobal}/.pm2
+      PATH: /host-nodejs/bin:/usr/local/sbin:/usr/bin:/bin
+      BSD_PM2_HOME_USER: ${MCP_HOST_HOME:-/home/bsdglobal}
     # www-data (gid 33) so CodeOps can write host app trees when dirs are group-writable
     group_add:
       - "33"
@@ -50,6 +66,10 @@ services:
       # Live CodeOps — rw into VPS app trees (path-jailed by policy)
       - /var/www/html/global-brandstory:/var/www/html/global-brandstory:rw
       - /var/www/html/global-backend/bsd-strapi:/var/www/html/global-backend/bsd-strapi:rw
+      # Host PM2 bridge (install-pm2-bridge.sh)
+      - /usr/local/sbin/bsd-pm2:/usr/local/sbin/bsd-pm2:ro
+      - ${MCP_HOST_NODE_BIN:-/usr/bin}:/host-nodejs/bin:ro
+      - ${MCP_HOST_HOME:-/home/bsdglobal}/.pm2:${MCP_HOST_HOME:-/home/bsdglobal}/.pm2:rw
     security_opt:
       - no-new-privileges:true
     cap_drop:

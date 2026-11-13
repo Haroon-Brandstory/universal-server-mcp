@@ -13,6 +13,29 @@ export function assertSafeServiceName(name: string): string {
   return n;
 }
 
+/** Prefer MCP_PM2_BIN=/usr/local/sbin/bsd-pm2 or /host-nodejs/bin/pm2 in Docker. */
+export function pm2Bin(): string {
+  const b = String(process.env.MCP_PM2_BIN || "").trim();
+  return b || "pm2";
+}
+
+export function npmBin(): string {
+  const b = String(process.env.MCP_NPM_BIN || "").trim();
+  return b || "npm";
+}
+
+export function nextjsPm2AppName(): string {
+  return assertSafeServiceName(
+    process.env.MCP_PM2_NEXTJS_NAME || "frontend-nextjs"
+  );
+}
+
+export function strapiPm2AppName(): string {
+  return assertSafeServiceName(
+    process.env.MCP_PM2_STRAPI_NAME || "strapi-backend"
+  );
+}
+
 /** Extensible service profiles — not hardcoded in gateway. */
 export const SERVICE_PROFILES: Record<string, ServiceProfile> = {
   nginx: {
@@ -65,16 +88,21 @@ export const SERVICE_PROFILES: Record<string, ServiceProfile> = {
   },
   pm2: {
     id: "pm2",
+    // Placeholder — getProfile() rebuilds with live MCP_PM2_* env.
     statusArgv: ["pm2", "jlist"],
     logsArgv: (name, lines) => [
-      "pm2",
+      pm2Bin(),
       "logs",
       assertSafeServiceName(name),
       "--lines",
       String(lines),
       "--nostream",
     ],
-    restartArgv: (name) => ["pm2", "restart", assertSafeServiceName(name)],
+    restartArgv: (name) => [
+      pm2Bin(),
+      "restart",
+      assertSafeServiceName(name),
+    ],
   },
   docker: {
     id: "docker",
@@ -90,16 +118,15 @@ export const SERVICE_PROFILES: Record<string, ServiceProfile> = {
   },
   nextjs: {
     id: "nextjs",
-    // Profile assumes PM2/systemd unit naming left to server registry health_urls / pm2
-    statusArgv: ["pm2", "describe", "nextjs"],
-    healthArgv: ["pm2", "pid", "nextjs"],
-    restartArgv: () => ["pm2", "restart", "nextjs"],
+    statusArgv: ["pm2", "describe", "frontend-nextjs"],
+    healthArgv: ["pm2", "pid", "frontend-nextjs"],
+    restartArgv: () => [pm2Bin(), "restart", nextjsPm2AppName()],
   },
   strapi: {
     id: "strapi",
-    statusArgv: ["pm2", "describe", "strapi"],
-    healthArgv: ["pm2", "pid", "strapi"],
-    restartArgv: () => ["pm2", "restart", "strapi"],
+    statusArgv: ["pm2", "describe", "strapi-backend"],
+    healthArgv: ["pm2", "pid", "strapi-backend"],
+    restartArgv: () => [pm2Bin(), "restart", strapiPm2AppName()],
   },
   postgres: {
     id: "postgres",
@@ -109,7 +136,45 @@ export const SERVICE_PROFILES: Record<string, ServiceProfile> = {
   },
 };
 
+function resolvePm2Profile(id: "pm2" | "nextjs" | "strapi"): ServiceProfile {
+  const bin = pm2Bin();
+  if (id === "pm2") {
+    return {
+      id: "pm2",
+      statusArgv: [bin, "jlist"],
+      logsArgv: (name, lines) => [
+        bin,
+        "logs",
+        assertSafeServiceName(name),
+        "--lines",
+        String(lines),
+        "--nostream",
+      ],
+      restartArgv: (name) => [bin, "restart", assertSafeServiceName(name)],
+    };
+  }
+  if (id === "nextjs") {
+    const app = nextjsPm2AppName();
+    return {
+      id: "nextjs",
+      statusArgv: [bin, "describe", app],
+      healthArgv: [bin, "pid", app],
+      restartArgv: () => [bin, "restart", app],
+    };
+  }
+  const app = strapiPm2AppName();
+  return {
+    id: "strapi",
+    statusArgv: [bin, "describe", app],
+    healthArgv: [bin, "pid", app],
+    restartArgv: () => [bin, "restart", app],
+  };
+}
+
 export function getProfile(id: string): ServiceProfile {
+  if (id === "pm2" || id === "nextjs" || id === "strapi") {
+    return resolvePm2Profile(id);
+  }
   const p = SERVICE_PROFILES[id];
   if (!p) throw new Error(`Unsupported service profile: ${id}`);
   return p;

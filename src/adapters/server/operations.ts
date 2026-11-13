@@ -11,7 +11,12 @@ import {
   publicServerView,
 } from "./registry.js";
 import { getServerTransport } from "./transport.js";
-import { assertSafeServiceName, getProfile } from "./profiles.js";
+import {
+  assertSafeServiceName,
+  getProfile,
+  npmBin,
+  pm2Bin,
+} from "./profiles.js";
 import {
   consumeServerApproval,
   createServerApproval,
@@ -496,11 +501,11 @@ export async function cacheClear(
 /** Constrained maintenance actions only — never arbitrary shell. */
 const MAINTENANCE_ACTIONS: Record<string, (server: ServerRecord) => string[]> = {
   "nginx.reload": () => ["sudo", "-n", "/usr/sbin/nginx", "-s", "reload"],
-  "pm2.save": () => ["pm2", "save"],
+  "pm2.save": () => [pm2Bin(), "save"],
   "disk.inode.check": () => ["df", "-i", "/"],
   /** Live Next.js rebuild (BSD Global FE path). */
   "nextjs.build": () => [
-    "npm",
+    npmBin(),
     "--prefix",
     "/var/www/html/global-brandstory",
     "run",
@@ -508,7 +513,7 @@ const MAINTENANCE_ACTIONS: Record<string, (server: ServerRecord) => string[]> = 
   ],
   /** Live Strapi rebuild (BSD Global BE path). */
   "strapi.build": () => [
-    "npm",
+    npmBin(),
     "--prefix",
     "/var/www/html/global-backend/bsd-strapi",
     "run",

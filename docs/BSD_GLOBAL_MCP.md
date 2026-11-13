@@ -29,5 +29,6 @@ Full commands: **[docs/DOCKER_DO_DEPLOY.md](./DOCKER_DO_DEPLOY.md)**
 - Auth: OAuth or Bearer `MCP_API_KEY`
 - **Every** live file write: `code.approval.create` → approve at `/operators` → `code.edit`/`code.write` + `approvalId`
 - **Go live:** `server.approval.create` → approve → `maintenance.run` `nextjs.build` → `server.service.restart` `nextjs` (`brandstory-fe-vps`)
+- PM2 from Docker: `deploy/host/install-pm2-bridge.sh` + compose `--env-file deploy/docker/.env.pm2` (see DOCKER_DO_DEPLOY.md)
 - Host dirs group-writable by `www-data` (see DOCKER_DO_DEPLOY.md)
 - Password: `MCP_OPERATOR_TOKEN` (never give to AI)

@@ -142,6 +142,24 @@ Approvals: `https://mcp.brandstoryglobal.com/operators` + `MCP_OPERATOR_TOKEN` (
 | `/var/www/html/global-backend/bsd-strapi:rw` | Live CodeOps BE |
 | `network_mode: host` | hit Next `:3000` / Strapi `:1337` on same box |
 | `group_add: ["33"]` | www-data gid — write into group-writable app dirs |
+| `/usr/local/sbin/bsd-pm2` + `/host-nodejs/bin` + `~/.pm2` | PM2 restart + `npm run build` from container |
+| `user: MCP_HOST_UID` | same uid as `bsdglobal` so PM2 daemon socket works |
+
+### Host PM2 bridge (required for Grok go-live)
+
+Container cannot see host nvm `pm2` → `spawn pm2 ENOENT`. Fix once on VPS:
+
+```bash
+cd /opt/bsd-global-mcp
+sudo bash deploy/host/install-pm2-bridge.sh
+# append printed MCP_PM2_* lines into /etc/bsd-global-mcp/env
+sudo chown root:bsdglobal /etc/bsd-global-mcp/env && sudo chmod 640 /etc/bsd-global-mcp/env
+docker compose -f deploy/docker/docker-compose.bsd-global.yml \
+  --env-file deploy/docker/.env.pm2 up -d --build
+docker exec bsd-global-mcp /usr/local/sbin/bsd-pm2 jlist
+```
+
+Profiles call `frontend-nextjs` / `strapi-backend` (override with `MCP_PM2_*_NAME`).
 
 ### Host perms (required for live edits)
 
@@ -168,3 +186,5 @@ OAuth clients (`oauth-remote`) get `code.write` / `code.edit` under `allow_paths
 | Host rejected | `MCP_ALLOWED_HOSTS=mcp.brandstoryglobal.com` |
 | code.list deny path | mounts match `projects.yaml` allow_paths |
 | certbot fail | `dig +short mcp.brandstoryglobal.com` = droplet IP; ports 80/443 open |
+| `spawn pm2 ENOENT` | run `install-pm2-bridge.sh`; recreate with `--env-file deploy/docker/.env.pm2` |
+| pm2 empty list | `MCP_HOST_UID` must match `id -u bsdglobal`; `PM2_HOME` mounted rw |

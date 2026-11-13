@@ -171,7 +171,14 @@ export class LocalServerTransport implements ServerTransport {
       const child = spawn(safe[0]!, safe.slice(1), {
         stdio: ["ignore", "pipe", "pipe"],
         shell: false,
-        env: { PATH: process.env.PATH, HOME: process.env.HOME },
+        env: {
+          PATH: process.env.PATH,
+          HOME: process.env.HOME,
+          PM2_HOME: process.env.PM2_HOME,
+          MCP_PM2_BIN: process.env.MCP_PM2_BIN,
+          MCP_NPM_BIN: process.env.MCP_NPM_BIN,
+          BSD_PM2_HOME_USER: process.env.BSD_PM2_HOME_USER,
+        },
       });
       let stdout = "";
       let stderr = "";
