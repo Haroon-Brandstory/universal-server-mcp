@@ -25,16 +25,16 @@ describe("pm2 profile env", () => {
   });
 
   it("honors MCP_PM2_* at getProfile time", () => {
-    process.env.MCP_PM2_BIN = "/usr/local/sbin/bsd-pm2";
+    process.env.MCP_PM2_BIN = "/usr/local/bin/pm2";
     process.env.MCP_PM2_NEXTJS_NAME = "frontend-nextjs";
+    process.env.MCP_PM2_RESTART_BIN = "/usr/local/sbin/bsd-mcp-request";
     const p = getProfile("nextjs");
     assert.deepEqual(p.restartArgv?.("ignored"), [
-      "/usr/local/sbin/bsd-pm2",
-      "restart",
-      "frontend-nextjs",
+      "/usr/local/sbin/bsd-mcp-request",
+      "nextjs",
     ]);
     assert.deepEqual(p.statusArgv, [
-      "/usr/local/sbin/bsd-pm2",
+      "/usr/local/bin/pm2",
       "describe",
       "frontend-nextjs",
     ]);

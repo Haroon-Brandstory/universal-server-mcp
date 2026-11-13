@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch MCP ctl request to restart Strapi (Brandstory BE)
+
+[Path]
+PathExists=/var/lib/bsd-mcp/ctl/restart-strapi.req
+Unit=bsd-mcp-restart-strapi.service
+
+[Install]
+WantedBy=multi-user.target

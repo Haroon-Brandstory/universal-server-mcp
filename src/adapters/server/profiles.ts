@@ -36,6 +36,12 @@ export function strapiPm2AppName(): string {
   );
 }
 
+/** Host ctl client (container). Writes /mcp-host-ctl; systemd runs bsdglobal pm2. */
+export function pm2RestartRequestBin(): string {
+  const b = String(process.env.MCP_PM2_RESTART_BIN || "").trim();
+  return b || "/usr/local/sbin/bsd-mcp-request";
+}
+
 /** Extensible service profiles — not hardcoded in gateway. */
 export const SERVICE_PROFILES: Record<string, ServiceProfile> = {
   nginx: {
@@ -155,19 +161,22 @@ function resolvePm2Profile(id: "pm2" | "nextjs" | "strapi"): ServiceProfile {
   }
   if (id === "nextjs") {
     const app = nextjsPm2AppName();
+    const req = pm2RestartRequestBin();
     return {
       id: "nextjs",
       statusArgv: [bin, "describe", app],
       healthArgv: [bin, "pid", app],
-      restartArgv: () => [bin, "restart", app],
+      // Never call host pm2 socket as uid 10001 — host agent restarts as bsdglobal.
+      restartArgv: () => [req, "nextjs"],
     };
   }
   const app = strapiPm2AppName();
+  const req = pm2RestartRequestBin();
   return {
     id: "strapi",
     statusArgv: [bin, "describe", app],
     healthArgv: [bin, "pid", app],
-    restartArgv: () => [bin, "restart", app],
+    restartArgv: () => [req, "strapi"],
   };
 }
 

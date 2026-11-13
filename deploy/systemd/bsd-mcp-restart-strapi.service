@@ -1,0 +1,8 @@
+[Unit]
+Description=Restart Brandstory BE via PM2 (MCP-approved)
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/bsd-mcp-ctl-handle strapi
+Nice=5

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Host-side: run as root from systemd. Drops to bsdglobal for pm2 restart.
+# Args: nextjs | strapi
+set -euo pipefail
+
+TARGET="${1:-}"
+CTL_DIR="${BSD_MCP_CTL_DIR:-/var/lib/bsd-mcp/ctl}"
+APP_USER="${BSD_PM2_USER:-bsdglobal}"
+mkdir -p "${CTL_DIR}"
+
+case "${TARGET}" in
+  nextjs)
+    REQ="${CTL_DIR}/restart-nextjs.req"
+    DONE="${CTL_DIR}/restart-nextjs.done"
+    SCRIPT=/usr/local/sbin/bsd-restart-nextjs
+    ;;
+  strapi)
+    REQ="${CTL_DIR}/restart-strapi.req"
+    DONE="${CTL_DIR}/restart-strapi.done"
+    SCRIPT=/usr/local/sbin/bsd-restart-strapi
+    ;;
+  *)
+    echo "usage: bsd-mcp-ctl-handle nextjs|strapi" >&2
+    exit 2
+    ;;
+esac
+
+rm -f "${DONE}"
+CODE=0
+if ! runuser -u "${APP_USER}" -g "${APP_USER}" -- "${SCRIPT}"; then
+  CODE=$?
+fi
+printf '%s\n' "${CODE}" >"${DONE}"
+chmod 666 "${DONE}" 2>/dev/null || true
+rm -f "${REQ}"
+exit 0

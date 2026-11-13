@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Restart Brandstory BE / Strapi PM2 app from the BE project tree.
+set -euo pipefail
+
+BE_ROOT="${BSD_BE_ROOT:-/var/www/html/global-backend/bsd-strapi}"
+APP_NAME="${MCP_PM2_STRAPI_NAME:-strapi-backend}"
+APP_USER="${BSD_PM2_USER:-bsdglobal}"
+HOME_DIR="$(getent passwd "${APP_USER}" | cut -d: -f6)"
+export HOME="${HOME_DIR}"
+export PM2_HOME="${HOME_DIR}/.pm2"
+
+cd "${BE_ROOT}"
+
+PM2="$(command -v pm2 || true)"
+if [[ -z "${PM2}" ]]; then
+  for c in "${HOME_DIR}"/.nvm/versions/node/*/bin/pm2 /usr/bin/pm2 /usr/local/bin/pm2; do
+    if [[ -x "${c}" ]]; then PM2="${c}"; break; fi
+  done
+fi
+if [[ -z "${PM2}" || ! -x "${PM2}" ]]; then
+  echo "bsd-restart-strapi: pm2 not found for ${APP_USER}" >&2
+  exit 127
+fi
+
+if "${PM2}" describe "${APP_NAME}" >/dev/null 2>&1; then
+  exec "${PM2}" restart "${APP_NAME}" --update-env
+fi
+
+if command -v node >/dev/null 2>&1; then
+  NAME="$(
+    BE_ROOT="${BE_ROOT}" PM2_HOME="${PM2_HOME}" "${PM2}" jlist 2>/dev/null | node -e '
+      let s=""; process.stdin.on("data",d=>s+=d); process.stdin.on("end",()=>{
+        try {
+          const apps=JSON.parse(s||"[]");
+          const root=process.env.BE_ROOT;
+          const hit=apps.find(a => (a.pm2_env&&String(a.pm2_env.pm_cwd||"").startsWith(root)));
+          if (hit) process.stdout.write(hit.name||"");
+        } catch {}
+      });
+    '
+  )" || true
+  if [[ -n "${NAME}" ]]; then
+    exec "${PM2}" restart "${NAME}" --update-env
+  fi
+fi
+
+echo "bsd-restart-strapi: no PM2 app named ${APP_NAME} and none with cwd under ${BE_ROOT}" >&2
+"${PM2}" list >&2 || true
+exit 1

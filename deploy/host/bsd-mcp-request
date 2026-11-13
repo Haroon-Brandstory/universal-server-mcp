@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Runs INSIDE MCP container (uid 10001). Writes ctl request; waits for host agent.
+# Args: nextjs | strapi
+set -euo pipefail
+
+TARGET="${1:-}"
+CTL_DIR="${BSD_MCP_CTL_DIR:-/mcp-host-ctl}"
+TIMEOUT_SEC="${BSD_MCP_RESTART_TIMEOUT_SEC:-90}"
+
+case "${TARGET}" in
+  nextjs)
+    REQ="${CTL_DIR}/restart-nextjs.req"
+    DONE="${CTL_DIR}/restart-nextjs.done"
+    ;;
+  strapi)
+    REQ="${CTL_DIR}/restart-strapi.req"
+    DONE="${CTL_DIR}/restart-strapi.done"
+    ;;
+  *)
+    echo "usage: bsd-mcp-request nextjs|strapi" >&2
+    exit 2
+    ;;
+esac
+
+if [[ ! -d "${CTL_DIR}" ]]; then
+  echo "bsd-mcp-request: ctl dir missing (${CTL_DIR}) — run install-pm2-bridge.sh on host" >&2
+  exit 127
+fi
+
+rm -f "${DONE}"
+printf '%s\n' "$$" >"${REQ}"
+
+elapsed=0
+while [[ "${elapsed}" -lt "${TIMEOUT_SEC}" ]]; do
+  if [[ -f "${DONE}" ]]; then
+    code="$(tr -d '[:space:]' <"${DONE}" || echo 1)"
+    rm -f "${DONE}"
+    if [[ "${code}" == "0" ]]; then
+      echo "bsd-mcp-request: ${TARGET} restart ok"
+      exit 0
+    fi
+    echo "bsd-mcp-request: ${TARGET} restart failed (exit ${code})" >&2
+    exit "${code}"
+  fi
+  sleep 1
+  elapsed=$((elapsed + 1))
+done
+
+echo "bsd-mcp-request: timeout waiting for host agent (${TARGET})" >&2
+exit 124

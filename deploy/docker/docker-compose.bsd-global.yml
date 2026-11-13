@@ -2,8 +2,8 @@
 # Install root: /opt/bsd-global-mcp
 # Nginx on host → 127.0.0.1:7337 → this container (host network)
 #
-# OAuth needs user 10001 + writable /data. Never mount host /usr/bin into PATH.
-# PM2: image ships pm2 client; mount host ~/.pm2 (ACL via install-pm2-bridge.sh).
+# OAuth: user 10001 + writable /data. Never mount host /usr/bin on PATH.
+# PM2 restart: host systemd ctl (install-pm2-bridge.sh) — not container→rpc.sock.
 #
 #   sudo bash deploy/host/install-pm2-bridge.sh
 #   docker compose -f deploy/docker/docker-compose.bsd-global.yml \
@@ -43,12 +43,13 @@ services:
       MCP_METRICS_PATH: /data/logs/metrics.jsonl
       MCP_OAUTH_STORE_PATH: /data/oauth-store.json
       MCP_BUILD_WORK_ROOT: /data/build-workspaces
-      # Image node/npm/pm2 — never host /usr/bin (glibc poison → /token 500)
-      MCP_PM2_BIN: /usr/local/bin/pm2
       MCP_NPM_BIN: /usr/local/bin/npm
+      MCP_PM2_BIN: /usr/local/bin/pm2
+      MCP_PM2_RESTART_BIN: /usr/local/sbin/bsd-mcp-request
       MCP_PM2_NEXTJS_NAME: ${MCP_PM2_NEXTJS_NAME:-frontend-nextjs}
       MCP_PM2_STRAPI_NAME: ${MCP_PM2_STRAPI_NAME:-strapi-backend}
       PM2_HOME: /pm2-home
+      BSD_MCP_CTL_DIR: /mcp-host-ctl
     group_add:
       - "33"
     volumes:
@@ -56,8 +57,11 @@ services:
       - bsd-global-mcp-data:/data
       - /var/www/html/global-brandstory:/var/www/html/global-brandstory:rw
       - /var/www/html/global-backend/bsd-strapi:/var/www/html/global-backend/bsd-strapi:rw
-      # Host PM2 daemon socket/files (ACL for uid 10001 via install-pm2-bridge.sh)
+      # Optional: status probes (ACL via install script). Restart does NOT need this.
       - ${MCP_HOST_HOME:-/home/bsdglobal}/.pm2:/pm2-home:rw
+      # Approved restart bridge: container touches file → host systemd → bsdglobal pm2
+      - /var/lib/bsd-mcp/ctl:/mcp-host-ctl:rw
+      - /usr/local/sbin/bsd-mcp-request:/usr/local/sbin/bsd-mcp-request:ro
     security_opt:
       - no-new-privileges:true
     cap_drop:

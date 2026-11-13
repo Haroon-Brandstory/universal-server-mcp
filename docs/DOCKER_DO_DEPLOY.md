@@ -143,24 +143,23 @@ Approvals: `https://mcp.brandstoryglobal.com/operators` + `MCP_OPERATOR_TOKEN` (
 | `network_mode: host` | hit Next `:3000` / Strapi `:1337` on same box |
 | `group_add: ["33"]` | www-data gid — write into group-writable app dirs |
 | `user: 10001:10001` | owns `/data` (oauth-store + audit) — never switch to bsdglobal uid |
-| `~/.pm2` → `/pm2-home` + ACL uid 10001 | image `pm2` client talks to host PM2 daemon |
+| `/var/lib/bsd-mcp/ctl` + `bsd-mcp-request` | approved restart → host systemd → bsdglobal pm2 |
+| optional `~/.pm2` → `/pm2-home` + ACL | status probes only |
 | **never** mount host `/usr/bin` on PATH | glibc mismatch → `/token` 500 |
 
-### Host PM2 bridge (required for Grok go-live)
+### Host PM2 restart bridge (required for Grok go-live)
+
+Container cannot use host `rpc.sock` (Permission denied). Restarts: after `/operators` approve → `bsd-mcp-request nextjs` → ctl file → systemd → `bsd-restart-nextjs` (cd `/var/www/html/global-brandstory`, `pm2 restart frontend-nextjs` as `bsdglobal`).
 
 ```bash
 cd /opt/bsd-global-mcp
 sudo bash deploy/host/install-pm2-bridge.sh
+# go live RIGHT NOW (title already built):
+pm2 restart frontend-nextjs
 docker compose -f deploy/docker/docker-compose.bsd-global.yml \
   --env-file deploy/docker/.env.pm2 up -d --build
-docker exec bsd-global-mcp /usr/bin/id
-docker exec bsd-global-mcp /usr/local/bin/pm2 jlist
-curl -sS -X POST https://mcp.brandstoryglobal.com/token \
-  -d 'grant_type=refresh_token&refresh_token=x&client_id=global-server-mcp-grok'
-# expect 400 invalid_grant — not 500
+docker exec bsd-global-mcp /usr/local/sbin/bsd-mcp-request nextjs
 ```
-
-Profiles: `frontend-nextjs` / `strapi-backend`.
 
 ### Host perms (required for live edits)
 
@@ -187,8 +186,8 @@ OAuth clients (`oauth-remote`) get `code.write` / `code.edit` under `allow_paths
 | Host rejected | `MCP_ALLOWED_HOSTS=mcp.brandstoryglobal.com` |
 | code.list deny path | mounts match `projects.yaml` allow_paths |
 | certbot fail | `dig +short mcp.brandstoryglobal.com` = droplet IP; ports 80/443 open |
-| `spawn pm2 ENOENT` | rebuild image (ships pm2); check `PM2_HOME=/pm2-home` mount |
-| pm2 empty list | `sudo bash deploy/host/install-pm2-bridge.sh` (ACL); recreate |
+| `Permission denied ... rpc.sock` | use ctl bridge (`install-pm2-bridge.sh`); do not call host pm2 from container |
+| `bsd-mcp-request: timeout` | `systemctl status bsd-mcp-restart-nextjs.path` — enabled? |
 | `/token` 500 or `EACCES ... /data` | `repair-mcp-data-perms.sh`; ensure no host `/usr/bin` on PATH |
 | `group_add items ... equal` | old compose bug — pull latest (only gid 33) |
 | `GLIBC_2.38` on `docker exec … id` | host `/usr/bin` still mounted — pull latest compose + recreate |
