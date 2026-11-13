@@ -293,7 +293,8 @@ principals:
       - deploy.rollback.plan
       - platform.info
       - platform.projects
-    allow_methods: [GET, HEAD, OPTIONS]
+    # GET + writes for Strapi Content API (https://brandstoryglobal.com/api/…)
+    allow_methods: [GET, HEAD, OPTIONS, POST, PUT, PATCH, DELETE]
     write: true
     admin: false
     oauth_allowed: true

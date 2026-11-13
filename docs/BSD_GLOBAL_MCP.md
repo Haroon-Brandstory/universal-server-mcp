@@ -32,3 +32,11 @@ Full commands: **[docs/DOCKER_DO_DEPLOY.md](./DOCKER_DO_DEPLOY.md)**
 - PM2 from Docker: `deploy/host/install-pm2-bridge.sh` + compose `--env-file deploy/docker/.env.pm2` (see DOCKER_DO_DEPLOY.md)
 - Host dirs group-writable by `www-data` (see DOCKER_DO_DEPLOY.md)
 - Password: `MCP_OPERATOR_TOKEN` (never give to AI)
+
+## Strapi Content API (Grok http.request)
+
+- Admin UI: `https://brandstoryglobal.com/admin`
+- **API base:** `https://brandstoryglobal.com/api` (collection e.g. `/api/blogs`)
+- Host already on project `allow_hosts` (`brandstoryglobal.com`)
+- Auth: Strapi API Token → `Authorization: Bearer <token>` (use Grok secure field; **never paste token in chat**)
+- `oauth-remote` allow_methods include POST/PUT/PATCH for create/update
