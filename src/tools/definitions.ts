@@ -659,7 +659,13 @@ export const TOOL_DEFINITIONS: Tool[] = [
         serverId: { type: "string" },
         action: {
           type: "string",
-          enum: ["nginx.reload", "pm2.save", "disk.inode.check"],
+          enum: [
+            "nginx.reload",
+            "pm2.save",
+            "disk.inode.check",
+            "nextjs.build",
+            "strapi.build",
+          ],
         },
         approvalId: { type: "string" },
         confirmServerId: { type: "string" },

@@ -45,7 +45,7 @@ Register more with `registerServiceProfile()` — no gateway change.
 3. `server.approval.create` → `approvalId`
 4. Confirm `confirmServerId` + `confirmEnvironment`
 5. Rate limit + per-server lock + before/after state + timeout
-6. `server.maintenance.run` accepts predefined action ids only (`nginx.reload`, `pm2.save`, `disk.inode.check`)
+6. `server.maintenance.run` accepts predefined action ids only (`nginx.reload`, `pm2.save`, `disk.inode.check`, `nextjs.build`, `strapi.build`)
 
 ## Policy
 
