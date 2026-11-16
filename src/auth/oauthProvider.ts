@@ -16,13 +16,16 @@ import {
 } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { loadPolicy } from "../config.js";
 import {
+  BUILTIN_OAUTH_REDIRECTS,
+  BUILTIN_OAUTH_REDIRECT_PREFIXES,
+  KNOWN_OAUTH_CLIENTS,
+  knownClientId,
+} from "./oauthClients.js";
+import {
   DurableOAuthStore,
   getOAuthStore,
   hashToken,
 } from "./oauthStore.js";
-
-const GROK_REDIRECT = "https://grok.com/connectors-oauth-exchange-code/";
-const CLAUDE_REDIRECT = "https://claude.ai/api/mcp/auth_callback";
 
 function allowedRedirects(): string[] {
   const policy = loadPolicy();
@@ -32,12 +35,38 @@ function allowedRedirects(): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
   return [
-    ...new Set([GROK_REDIRECT, CLAUDE_REDIRECT, ...fromPolicy, ...extra]),
+    ...new Set([...BUILTIN_OAUTH_REDIRECTS, ...fromPolicy, ...extra]),
   ];
 }
 
+function allowedRedirectPrefixes(): string[] {
+  const policy = loadPolicy();
+  const fromPolicy = policy.oauth?.allowed_redirect_uri_prefixes || [];
+  const extra = (process.env.MCP_OAUTH_ALLOWED_REDIRECT_PREFIXES || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return [
+    ...new Set([
+      ...BUILTIN_OAUTH_REDIRECT_PREFIXES,
+      ...fromPolicy,
+      ...extra,
+    ]),
+  ];
+}
+
+/** Exact URI or allowlisted https prefix (ChatGPT per-connector). */
+export function isRedirectAllowed(uri: string): boolean {
+  if (allowedRedirects().includes(uri)) return true;
+  for (const prefix of allowedRedirectPrefixes()) {
+    if (!prefix.startsWith("https://")) continue;
+    if (uri.startsWith(prefix) && uri.length > prefix.length) return true;
+  }
+  return false;
+}
+
 function validateRedirectUri(uri: string): void {
-  if (!allowedRedirects().includes(uri)) {
+  if (!isRedirectAllowed(uri)) {
     throw new InvalidRequestError(`redirect_uri not allowlisted: ${uri}`);
   }
 }
@@ -58,29 +87,31 @@ function publicClientBase(
   };
 }
 
-function grokClient(): OAuthClientInformationFull {
-  return publicClientBase(
-    grokOAuthClientId(),
-    [GROK_REDIRECT],
-    "Grok Web Connectors"
-  );
-}
-
-function claudeClient(): OAuthClientInformationFull {
-  return publicClientBase(
-    claudeOAuthClientId(),
-    [CLAUDE_REDIRECT],
-    "Claude Custom Connectors"
+function staticClients(): OAuthClientInformationFull[] {
+  return KNOWN_OAUTH_CLIENTS.map((c) =>
+    publicClientBase(knownClientId(c), c.redirectUris, c.clientName)
   );
 }
 
 function staticClientById(
   clientId: string
 ): OAuthClientInformationFull | undefined {
-  for (const c of [grokClient(), claudeClient()]) {
-    if (c.client_id === clientId) return c;
+  return staticClients().find((c) => c.client_id === clientId);
+}
+
+function clientAcceptsRedirect(
+  client: OAuthClientInformationFull,
+  redirectUri: string
+): boolean {
+  if (client.redirect_uris.includes(redirectUri)) return true;
+  // ChatGPT static client: platform redirect OR per-connector prefix
+  const chatgpt = KNOWN_OAUTH_CLIENTS.find((c) => c.setupSlug === "chatgpt");
+  if (chatgpt && client.client_id === knownClientId(chatgpt)) {
+    return BUILTIN_OAUTH_REDIRECT_PREFIXES.some(
+      (p) => redirectUri.startsWith(p) && redirectUri.length > p.length
+    );
   }
-  return undefined;
+  return false;
 }
 
 /** Pre-registered clients only — no registerClient ⇒ SDK omits /register. */
@@ -117,7 +148,7 @@ export class DcrClientsStore implements OAuthRegisteredClientsStore {
       client_id_issued_at: Math.floor(Date.now() / 1000),
       token_endpoint_auth_method: client.token_endpoint_auth_method || "none",
       redirect_uris: (client.redirect_uris || []).filter((u) =>
-        allowedRedirects().includes(u)
+        isRedirectAllowed(u)
       ),
     };
     if (!full.redirect_uris.length) {
@@ -151,7 +182,7 @@ export class GatewayOAuthProvider implements OAuthServerProvider {
     res: Response
   ): Promise<void> {
     validateRedirectUri(params.redirectUri);
-    if (!client.redirect_uris.includes(params.redirectUri)) {
+    if (!clientAcceptsRedirect(client, params.redirectUri)) {
       throw new InvalidRequestError("Unregistered redirect_uri");
     }
 
@@ -367,12 +398,38 @@ export function resetOAuthProviderForTests(
 }
 
 export function grokOAuthClientId(): string {
-  return process.env.MCP_OAUTH_GROK_CLIENT_ID || "global-server-mcp-grok";
+  return (
+    process.env.MCP_OAUTH_GROK_CLIENT_ID || "global-server-mcp-grok"
+  );
 }
 
 export function claudeOAuthClientId(): string {
-  return process.env.MCP_OAUTH_CLAUDE_CLIENT_ID || "global-server-mcp-claude";
+  return (
+    process.env.MCP_OAUTH_CLAUDE_CLIENT_ID || "global-server-mcp-claude"
+  );
 }
 
-export const CLAUDE_OAUTH_REDIRECT = CLAUDE_REDIRECT;
-export const GROK_OAUTH_REDIRECT = GROK_REDIRECT;
+export function chatgptOAuthClientId(): string {
+  return (
+    process.env.MCP_OAUTH_CHATGPT_CLIENT_ID || "global-server-mcp-chatgpt"
+  );
+}
+
+export function cursorOAuthClientId(): string {
+  return (
+    process.env.MCP_OAUTH_CURSOR_CLIENT_ID || "global-server-mcp-cursor"
+  );
+}
+
+export {
+  CLAUDE_OAUTH_REDIRECT,
+  CHATGPT_OAUTH_REDIRECT,
+  CURSOR_DESKTOP_OAUTH_REDIRECT,
+  CURSOR_WEB_OAUTH_REDIRECT,
+  GROK_OAUTH_REDIRECT,
+} from "./oauthClients.js";
+export {
+  allKnownStaticClients,
+  KNOWN_OAUTH_CLIENTS,
+  knownClientId,
+} from "./oauthClients.js";

@@ -9,12 +9,16 @@ import {
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { runWithAuth } from "../auth/requestContext.js";
 import { resolveHttpPrincipal } from "../auth/resolveHttpPrincipal.js";
+import { loadPolicy } from "../config.js";
+import { knownClientId } from "../auth/oauthClients.js";
 import {
-  CLAUDE_OAUTH_REDIRECT,
-  GROK_OAUTH_REDIRECT,
+  allKnownStaticClients,
+  chatgptOAuthClientId,
   claudeOAuthClientId,
+  cursorOAuthClientId,
   getOAuthProvider,
   grokOAuthClientId,
+  KNOWN_OAUTH_CLIENTS,
 } from "../auth/oauthProvider.js";
 import { mountOAuthConsentRoutes } from "../auth/oauthConsent.js";
 import { mountOperatorRoutes } from "./operatorApi.js";
@@ -204,40 +208,51 @@ export async function startHttpGateway(): Promise<void> {
     mountOAuthConsentRoutes(app);
     resourceMetadataUrl = getOAuthProtectedResourceMetadataUrl(mcpServerUrl);
 
-    app.get("/oauth/grok-setup", (_req, res) => {
+    const oauthCommon = () => ({
+      server_url: mcpServerUrl!.href,
+      client_secret: null,
+      authorization_endpoint: new URL("/authorize", pub).href,
+      token_endpoint: new URL("/token", pub).href,
+      consent_endpoint: new URL("/oauth/consent", pub).href,
+      scopes: ["mcp:tools"] as string[],
+      token_auth_method: "none",
+    });
+
+    const policy = loadPolicy();
+    const dcrOn =
+      policy.oauth?.allow_dynamic_registration === true &&
+      process.env.MCP_OAUTH_ALLOW_DCR === "1";
+
+    app.get("/oauth/setup", (_req, res) => {
       res.json({
-        server_url: mcpServerUrl!.href,
-        client_id: grokOAuthClientId(),
-        client_secret: null,
-        authorization_endpoint: new URL("/authorize", pub).href,
-        token_endpoint: new URL("/token", pub).href,
-        consent_endpoint: new URL("/oauth/consent", pub).href,
-        scopes: ["mcp:tools"],
-        token_auth_method: "none",
-        redirect_uri: GROK_OAUTH_REDIRECT,
+        ...oauthCommon(),
+        dcr_enabled: dcrOn,
+        clients: allKnownStaticClients().map((c) => ({
+          client_id: c.clientId,
+          client_name: c.clientName,
+          redirect_uris: c.redirectUris,
+          setup_url: new URL(`/oauth/${c.setupSlug}-setup`, pub).href,
+          notes: c.notes,
+        })),
         notes:
-          "Paste into grok.com Connectors. Leave Client Secret empty. Operator must approve at /oauth/consent with MCP_OAUTH_OPERATOR_KEY — auto-approve is disabled.",
+          "Universal MCP OAuth. Prefer client-specific /oauth/{ai}-setup. ChatGPT/Claude/Grok/Cursor pre-registered. DCR allowed only for allowlisted redirects when dcr_enabled. Operator must approve at /oauth/consent.",
       });
     });
 
-    app.get("/oauth/claude-setup", (_req, res) => {
-      res.json({
-        server_url: mcpServerUrl!.href,
-        client_id: claudeOAuthClientId(),
-        client_secret: null,
-        authorization_endpoint: new URL("/authorize", pub).href,
-        token_endpoint: new URL("/token", pub).href,
-        consent_endpoint: new URL("/oauth/consent", pub).href,
-        scopes: ["mcp:tools"],
-        token_auth_method: "none",
-        redirect_uri: CLAUDE_OAUTH_REDIRECT,
-        notes:
-          "Paste into Claude custom connector (Use your own OAuth client). Leave Client Secret empty. Operator must approve at /oauth/consent with MCP_OAUTH_OPERATOR_KEY — auto-approve is disabled.",
+    for (const known of KNOWN_OAUTH_CLIENTS) {
+      app.get(`/oauth/${known.setupSlug}-setup`, (_req, res) => {
+        res.json({
+          ...oauthCommon(),
+          client_id: knownClientId(known),
+          redirect_uri: known.redirectUris[0],
+          redirect_uris: known.redirectUris,
+          notes: known.notes,
+        });
       });
-    });
+    }
   } else {
     console.error(
-      "WARN: MCP_PUBLIC_BASE_URL unset — OAuth for Grok/Claude connectors disabled. Set to your public HTTPS origin."
+      "WARN: MCP_PUBLIC_BASE_URL unset — OAuth for remote AI connectors disabled. Set to your public HTTPS origin."
     );
   }
 
@@ -485,11 +500,12 @@ export async function startHttpGateway(): Promise<void> {
   ];
   if (pub) {
     lines.push(
-      `  OAuth AS:        ${pub.href}`,
-      `  Grok setup JSON:   ${new URL("/oauth/grok-setup", pub).href}`,
-      `  Claude setup JSON: ${new URL("/oauth/claude-setup", pub).href}`,
+      `  OAuth AS:          ${pub.href}`,
+      `  Universal setup:   ${new URL("/oauth/setup", pub).href}`,
       `  Grok Client ID:    ${grokOAuthClientId()}`,
       `  Claude Client ID:  ${claudeOAuthClientId()}`,
+      `  ChatGPT Client ID: ${chatgptOAuthClientId()}`,
+      `  Cursor Client ID:  ${cursorOAuthClientId()}`,
       `  Authorize:         ${new URL("/authorize", pub).href}`,
       `  Token:             ${new URL("/token", pub).href}`
     );

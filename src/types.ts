@@ -163,6 +163,8 @@ export interface ProjectScope {
 
 export interface OAuthPolicy {
   allowed_redirect_uris: string[];
+  /** HTTPS prefixes for dynamic per-connection redirects (e.g. ChatGPT). */
+  allowed_redirect_uri_prefixes?: string[];
   default_principal_id: string;
   client_principal_map?: Record<string, string>;
   allow_dynamic_registration?: boolean;

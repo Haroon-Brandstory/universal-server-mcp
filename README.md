@@ -201,21 +201,22 @@ Expose beyond localhost only behind TLS reverse proxy (`MCP_HTTP_HOST=0.0.0.0` +
 | Scopes | `mcp:tools` |
 | Token Auth Method | none (PKCE only) |
 
-### Claude custom connectors (OAuth)
+### Claude / ChatGPT / Cursor (OAuth) — universal
 
-1. Same `MCP_PUBLIC_BASE_URL` + `MCP_OAUTH_OPERATOR_KEY` as Grok
-2. Open `https://YOUR-ORIGIN/oauth/claude-setup` — copy fields into Claude
-3. Claude → Connectors → Custom → Web → URL `…/mcp` → **Use your own OAuth client**
-4. Client ID `global-server-mcp-claude`, Client Secret empty → approve at `/oauth/consent`
+Catalog: `https://YOUR-ORIGIN/oauth/setup`
 
-| Claude field | Value |
-|---|---|
-| Server URL | `https://YOUR-ORIGIN/mcp` |
-| Client ID | `global-server-mcp-claude` |
-| Client Secret | *(empty)* |
-| Redirect (allowlisted) | `https://claude.ai/api/mcp/auth_callback` |
+| AI | Client ID | Setup |
+|---|---|---|
+| Claude | `global-server-mcp-claude` | `/oauth/claude-setup` |
+| ChatGPT | `global-server-mcp-chatgpt` | `/oauth/chatgpt-setup` |
+| Cursor | `global-server-mcp-cursor` | `/oauth/cursor-setup` |
+| Grok | `global-server-mcp-grok` | `/oauth/grok-setup` |
 
-Guide: [docs/clients/claude.md](docs/clients/claude.md)
+Server URL always `https://YOUR-ORIGIN/mcp`. Client Secret empty. Approve at `/oauth/consent`.
+
+ChatGPT: Plugins → Add custom MCP → OAuth. DCR on when `MCP_OAUTH_ALLOW_DCR=1` (bsd-global compose).
+
+Guides: [universal-oauth.md](docs/clients/universal-oauth.md) · [claude.md](docs/clients/claude.md) · [chatgpt.md](docs/clients/chatgpt.md)
 
 ---
 

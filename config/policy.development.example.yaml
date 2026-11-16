@@ -37,11 +37,18 @@ oauth:
   allowed_redirect_uris:
     - https://grok.com/connectors-oauth-exchange-code/
     - https://claude.ai/api/mcp/auth_callback
+    - https://chatgpt.com/connector_platform_oauth_redirect
+    - http://localhost:8787/callback
+    - https://www.cursor.com/agents/mcp/oauth/callback
+  allowed_redirect_uri_prefixes:
+    - https://chatgpt.com/connector/oauth/
   default_principal_id: oauth-remote
   client_principal_map:
     global-server-mcp-grok: oauth-remote
     global-server-mcp-claude: oauth-remote
-  allow_dynamic_registration: false
+    global-server-mcp-chatgpt: oauth-remote
+    global-server-mcp-cursor: oauth-remote
+  allow_dynamic_registration: true
 
 principals:
   - id: local-dev

@@ -21,8 +21,8 @@
 | HTTP | Bearer / `X-API-Key` API key **or** OAuth access token |
 | OAuth | `/authorize` → `/oauth/consent` → operator key (`MCP_OAUTH_OPERATOR_KEY` / `oauth_operator` principal) → code → tokens |
 | Token store | `MCP_OAUTH_STORE_PATH` (default `./data/oauth-store.json`), tokens hashed at rest (sha256) |
-| DCR | Disabled unless `policy.oauth.allow_dynamic_registration: true` **and** `MCP_OAUTH_ALLOW_DCR=1` |
-| Redirects | Exact allowlist (`policy.oauth.allowed_redirect_uris` + optional env) |
+| DCR | Off unless `policy.oauth.allow_dynamic_registration: true` **and** `MCP_OAUTH_ALLOW_DCR=1` (bsd-global compose sets both; redirects still allowlisted) |
+| Redirects | Exact allowlist + optional HTTPS prefixes (`allowed_redirect_uri_prefixes`, e.g. ChatGPT per-connector) |
 
 ## Authorization
 - Tool **discovery** filtered by principal capabilities + write/admin flags

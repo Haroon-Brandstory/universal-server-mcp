@@ -5,12 +5,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { resetOAuthStoreForTests } from "./oauthStore.js";
 import {
+  isRedirectAllowed,
   resetOAuthProviderForTests,
   StaticClientsStore,
 } from "./oauthProvider.js";
 
 const GROK_REDIRECT = "https://grok.com/connectors-oauth-exchange-code/";
 const CLAUDE_REDIRECT = "https://claude.ai/api/mcp/auth_callback";
+const CHATGPT_REDIRECT =
+  "https://chatgpt.com/connector_platform_oauth_redirect";
+const CHATGPT_DYNAMIC =
+  "https://chatgpt.com/connector/oauth/abc123-test-callback";
 
 describe("OAuth security", () => {
   let provider: ReturnType<typeof resetOAuthProviderForTests>;
@@ -29,10 +34,15 @@ oauth:
   allowed_redirect_uris:
     - ${GROK_REDIRECT}
     - ${CLAUDE_REDIRECT}
+    - ${CHATGPT_REDIRECT}
+  allowed_redirect_uri_prefixes:
+    - https://chatgpt.com/connector/oauth/
   default_principal_id: oauth-remote
   client_principal_map:
     global-server-mcp-grok: oauth-remote
     global-server-mcp-claude: oauth-remote
+    global-server-mcp-chatgpt: oauth-remote
+    global-server-mcp-cursor: oauth-remote
   allow_dynamic_registration: false
 principals:
   - id: oauth-remote
@@ -193,6 +203,56 @@ ssrf:
         },
         res
       )
+    );
+  });
+
+  it("chatgpt client — platform + dynamic prefix redirects", async () => {
+    assert.equal(isRedirectAllowed(CHATGPT_REDIRECT), true);
+    assert.equal(isRedirectAllowed(CHATGPT_DYNAMIC), true);
+    assert.equal(isRedirectAllowed("https://evil.example/oauth/x"), false);
+    assert.equal(
+      isRedirectAllowed("https://chatgpt.com/connector/oauth/"),
+      false
+    );
+
+    const client = await provider.clientsStore.getClient(
+      "global-server-mcp-chatgpt"
+    );
+    assert.ok(client);
+
+    const redirects: string[] = [];
+    const res = {
+      redirect: (_code: number, loc: string) => {
+        redirects.push(loc);
+      },
+    } as unknown as import("express").Response;
+
+    await provider.authorize(
+      client!,
+      {
+        codeChallenge: "challenge-chatgpt",
+        redirectUri: CHATGPT_DYNAMIC,
+        scopes: ["mcp:tools"],
+      },
+      res
+    );
+    const rid = new URL(redirects[0], "http://localhost").searchParams.get(
+      "rid"
+    );
+    const { redirectUri } = provider.completeConsent(rid!, "oauth-remote", true);
+    assert.ok(redirectUri.startsWith(CHATGPT_DYNAMIC));
+    assert.equal(
+      provider.resolveConsentPrincipalId("global-server-mcp-chatgpt"),
+      "oauth-remote"
+    );
+  });
+
+  it("cursor + chatgpt static clients exist", async () => {
+    assert.ok(
+      await provider.clientsStore.getClient("global-server-mcp-cursor")
+    );
+    assert.ok(
+      await provider.clientsStore.getClient("global-server-mcp-chatgpt")
     );
   });
 

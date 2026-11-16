@@ -32,6 +32,8 @@ services:
       MCP_HTTP_PORT: "7337"
       MCP_ALLOW_TUNNEL_HOSTS: "0"
       MCP_TRUST_PROXY: "1"
+      # DCR for ChatGPT/etc — redirects still allowlisted (policy + builtins)
+      MCP_OAUTH_ALLOW_DCR: "1"
       MCP_POLICY_PATH: /app/config/policy.yaml
       MCP_PROJECTS_PATH: /app/config/projects.yaml
       MCP_SERVERS_PATH: /app/config/servers.yaml
