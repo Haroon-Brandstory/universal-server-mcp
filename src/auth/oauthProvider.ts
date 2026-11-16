@@ -22,6 +22,7 @@ import {
 } from "./oauthStore.js";
 
 const GROK_REDIRECT = "https://grok.com/connectors-oauth-exchange-code/";
+const CLAUDE_REDIRECT = "https://claude.ai/api/mcp/auth_callback";
 
 function allowedRedirects(): string[] {
   const policy = loadPolicy();
@@ -30,7 +31,9 @@ function allowedRedirects(): string[] {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  return [...new Set([GROK_REDIRECT, ...fromPolicy, ...extra])];
+  return [
+    ...new Set([GROK_REDIRECT, CLAUDE_REDIRECT, ...fromPolicy, ...extra]),
+  ];
 }
 
 function validateRedirectUri(uri: string): void {
@@ -39,18 +42,45 @@ function validateRedirectUri(uri: string): void {
   }
 }
 
-function grokClient(): OAuthClientInformationFull {
-  const expected =
-    process.env.MCP_OAUTH_GROK_CLIENT_ID || "global-server-mcp-grok";
+function publicClientBase(
+  clientId: string,
+  redirectUris: string[],
+  clientName: string
+): OAuthClientInformationFull {
   return {
-    client_id: expected,
+    client_id: clientId,
     client_id_issued_at: Math.floor(Date.now() / 1000),
-    redirect_uris: allowedRedirects(),
+    redirect_uris: redirectUris,
     token_endpoint_auth_method: "none",
     grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],
-    client_name: "Grok Web Connectors",
+    client_name: clientName,
   };
+}
+
+function grokClient(): OAuthClientInformationFull {
+  return publicClientBase(
+    grokOAuthClientId(),
+    [GROK_REDIRECT],
+    "Grok Web Connectors"
+  );
+}
+
+function claudeClient(): OAuthClientInformationFull {
+  return publicClientBase(
+    claudeOAuthClientId(),
+    [CLAUDE_REDIRECT],
+    "Claude Custom Connectors"
+  );
+}
+
+function staticClientById(
+  clientId: string
+): OAuthClientInformationFull | undefined {
+  for (const c of [grokClient(), claudeClient()]) {
+    if (c.client_id === clientId) return c;
+  }
+  return undefined;
 }
 
 /** Pre-registered clients only — no registerClient ⇒ SDK omits /register. */
@@ -58,8 +88,7 @@ export class StaticClientsStore implements OAuthRegisteredClientsStore {
   async getClient(
     clientId: string
   ): Promise<OAuthClientInformationFull | undefined> {
-    const c = grokClient();
-    return clientId === c.client_id ? c : undefined;
+    return staticClientById(clientId);
   }
 }
 
@@ -70,8 +99,8 @@ export class DcrClientsStore implements OAuthRegisteredClientsStore {
   async getClient(
     clientId: string
   ): Promise<OAuthClientInformationFull | undefined> {
-    const c = grokClient();
-    if (clientId === c.client_id) return c;
+    const staticClient = staticClientById(clientId);
+    if (staticClient) return staticClient;
     return this.dynamic.get(clientId);
   }
 
@@ -340,3 +369,10 @@ export function resetOAuthProviderForTests(
 export function grokOAuthClientId(): string {
   return process.env.MCP_OAUTH_GROK_CLIENT_ID || "global-server-mcp-grok";
 }
+
+export function claudeOAuthClientId(): string {
+  return process.env.MCP_OAUTH_CLAUDE_CLIENT_ID || "global-server-mcp-claude";
+}
+
+export const CLAUDE_OAUTH_REDIRECT = CLAUDE_REDIRECT;
+export const GROK_OAUTH_REDIRECT = GROK_REDIRECT;

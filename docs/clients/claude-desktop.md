@@ -2,6 +2,8 @@
 
 **Status:** protocol (stdio). Not marked verified unless operator confirms in Claude Desktop UI.
 
+For **claude.ai custom connectors** (remote OAuth), see [claude.md](./claude.md).
+
 ```json
 {
   "mcpServers": {

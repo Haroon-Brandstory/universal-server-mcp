@@ -7,7 +7,7 @@
 |---|---|---|---|---|---|---|---|---|---|
 | Cursor | stdio | API key | `docs/clients/cursor.md` | Operator Verification Required | OVR | OVR | OVR | OVR | **protocol** |
 | Grok / xAI | Streamable HTTP + OAuth PKCE | OAuth + consent | `docs/clients/grok.md` | OVR | OVR | OVR | OVR | OVR | **protocol** |
-| Claude Desktop | stdio or HTTP (per app version) | API key / OAuth | `docs/clients/claude-desktop.md` | OVR | OVR | OVR | OVR | OVR | **protocol** |
+| Claude Desktop / claude.ai | stdio or Streamable HTTP + OAuth PKCE | API key / OAuth + consent | `docs/clients/claude.md` · `claude-desktop.md` | OVR | OVR | OVR | OVR | OVR | **protocol** |
 | Claude Code | stdio / HTTP | API key | `docs/clients/claude-code.md` | OVR | OVR | OVR | OVR | OVR | **protocol** |
 | ChatGPT | HTTP (where MCP supported) | OAuth/API per platform | `docs/clients/chatgpt.md` | OVR | OVR | OVR | OVR | OVR | **protocol** |
 | VS Code | extension MCP | API key | `docs/clients/vscode.md` | OVR | OVR | OVR | OVR | OVR | **protocol** |

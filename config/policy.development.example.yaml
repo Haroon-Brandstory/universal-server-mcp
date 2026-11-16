@@ -36,7 +36,11 @@ github:
 oauth:
   allowed_redirect_uris:
     - https://grok.com/connectors-oauth-exchange-code/
+    - https://claude.ai/api/mcp/auth_callback
   default_principal_id: oauth-remote
+  client_principal_map:
+    global-server-mcp-grok: oauth-remote
+    global-server-mcp-claude: oauth-remote
   allow_dynamic_registration: false
 
 principals:

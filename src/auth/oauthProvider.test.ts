@@ -10,6 +10,7 @@ import {
 } from "./oauthProvider.js";
 
 const GROK_REDIRECT = "https://grok.com/connectors-oauth-exchange-code/";
+const CLAUDE_REDIRECT = "https://claude.ai/api/mcp/auth_callback";
 
 describe("OAuth security", () => {
   let provider: ReturnType<typeof resetOAuthProviderForTests>;
@@ -27,7 +28,11 @@ rate_limit_per_min: 60
 oauth:
   allowed_redirect_uris:
     - ${GROK_REDIRECT}
+    - ${CLAUDE_REDIRECT}
   default_principal_id: oauth-remote
+  client_principal_map:
+    global-server-mcp-grok: oauth-remote
+    global-server-mcp-claude: oauth-remote
   allow_dynamic_registration: false
 principals:
   - id: oauth-remote
@@ -122,6 +127,69 @@ ssrf:
         {
           codeChallenge: "x",
           redirectUri: "https://evil.example/cb",
+        },
+        res
+      )
+    );
+  });
+
+  it("claude client — consent + token bind oauth-remote", async () => {
+    const client = await provider.clientsStore.getClient(
+      "global-server-mcp-claude"
+    );
+    assert.ok(client);
+    assert.ok(client!.redirect_uris.includes(CLAUDE_REDIRECT));
+
+    const redirects: string[] = [];
+    const res = {
+      redirect: (_code: number, loc: string) => {
+        redirects.push(loc);
+      },
+    } as unknown as import("express").Response;
+
+    await provider.authorize(
+      client!,
+      {
+        codeChallenge: "challenge-claude",
+        redirectUri: CLAUDE_REDIRECT,
+        scopes: ["mcp:tools"],
+        state: "claude-state",
+      },
+      res
+    );
+    const rid = new URL(redirects[0], "http://localhost").searchParams.get(
+      "rid"
+    );
+    assert.ok(rid);
+
+    const { redirectUri } = provider.completeConsent(rid!, "oauth-remote", true);
+    assert.equal(
+      new URL(redirectUri).origin + new URL(redirectUri).pathname,
+      CLAUDE_REDIRECT
+    );
+    const code = new URL(redirectUri).searchParams.get("code");
+    assert.ok(code);
+
+    const tokens = await provider.exchangeAuthorizationCode(client!, code!);
+    const info = await provider.verifyAccessToken(tokens.access_token);
+    assert.equal(info.extra?.principalId, "oauth-remote");
+    assert.equal(
+      provider.resolveConsentPrincipalId("global-server-mcp-claude"),
+      "oauth-remote"
+    );
+  });
+
+  it("rejects grok client using claude redirect", async () => {
+    const client = await provider.clientsStore.getClient("global-server-mcp-grok");
+    const res = {
+      redirect: () => undefined,
+    } as unknown as import("express").Response;
+    await assert.rejects(() =>
+      provider.authorize(
+        client!,
+        {
+          codeChallenge: "x",
+          redirectUri: CLAUDE_REDIRECT,
         },
         res
       )

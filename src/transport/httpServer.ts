@@ -10,6 +10,9 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { runWithAuth } from "../auth/requestContext.js";
 import { resolveHttpPrincipal } from "../auth/resolveHttpPrincipal.js";
 import {
+  CLAUDE_OAUTH_REDIRECT,
+  GROK_OAUTH_REDIRECT,
+  claudeOAuthClientId,
   getOAuthProvider,
   grokOAuthClientId,
 } from "../auth/oauthProvider.js";
@@ -211,14 +214,30 @@ export async function startHttpGateway(): Promise<void> {
         consent_endpoint: new URL("/oauth/consent", pub).href,
         scopes: ["mcp:tools"],
         token_auth_method: "none",
-        redirect_uri: "https://grok.com/connectors-oauth-exchange-code/",
+        redirect_uri: GROK_OAUTH_REDIRECT,
         notes:
           "Paste into grok.com Connectors. Leave Client Secret empty. Operator must approve at /oauth/consent with MCP_OAUTH_OPERATOR_KEY — auto-approve is disabled.",
       });
     });
+
+    app.get("/oauth/claude-setup", (_req, res) => {
+      res.json({
+        server_url: mcpServerUrl!.href,
+        client_id: claudeOAuthClientId(),
+        client_secret: null,
+        authorization_endpoint: new URL("/authorize", pub).href,
+        token_endpoint: new URL("/token", pub).href,
+        consent_endpoint: new URL("/oauth/consent", pub).href,
+        scopes: ["mcp:tools"],
+        token_auth_method: "none",
+        redirect_uri: CLAUDE_OAUTH_REDIRECT,
+        notes:
+          "Paste into Claude custom connector (Use your own OAuth client). Leave Client Secret empty. Operator must approve at /oauth/consent with MCP_OAUTH_OPERATOR_KEY — auto-approve is disabled.",
+      });
+    });
   } else {
     console.error(
-      "WARN: MCP_PUBLIC_BASE_URL unset — OAuth for grok.com connectors disabled. Set to your ngrok HTTPS origin."
+      "WARN: MCP_PUBLIC_BASE_URL unset — OAuth for Grok/Claude connectors disabled. Set to your public HTTPS origin."
     );
   }
 
@@ -467,10 +486,12 @@ export async function startHttpGateway(): Promise<void> {
   if (pub) {
     lines.push(
       `  OAuth AS:        ${pub.href}`,
-      `  Grok setup JSON: ${new URL("/oauth/grok-setup", pub).href}`,
-      `  Client ID:       ${grokOAuthClientId()}`,
-      `  Authorize:       ${new URL("/authorize", pub).href}`,
-      `  Token:           ${new URL("/token", pub).href}`
+      `  Grok setup JSON:   ${new URL("/oauth/grok-setup", pub).href}`,
+      `  Claude setup JSON: ${new URL("/oauth/claude-setup", pub).href}`,
+      `  Grok Client ID:    ${grokOAuthClientId()}`,
+      `  Claude Client ID:  ${claudeOAuthClientId()}`,
+      `  Authorize:         ${new URL("/authorize", pub).href}`,
+      `  Token:             ${new URL("/token", pub).href}`
     );
   }
   console.error(lines.join("\n"));
