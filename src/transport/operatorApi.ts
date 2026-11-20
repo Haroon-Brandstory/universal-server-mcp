@@ -56,9 +56,14 @@ export function mountOperatorRoutes(app: Express): void {
           res.status(400).json({ error: 'action must be "approve" or "deny".' });
           return;
         }
-        const ids = Array.isArray(req.body?.ids)
-          ? [...new Set(req.body.ids.map((x: unknown) => String(x || "").trim()).filter(Boolean))]
-          : [];
+        const rawIds = Array.isArray(req.body?.ids) ? (req.body.ids as unknown[]) : [];
+        const ids: string[] = [
+          ...new Set(
+            rawIds
+              .map((x) => String(x ?? "").trim())
+              .filter((id): id is string => id.length > 0)
+          ),
+        ];
         if (!ids.length) {
           res.status(400).json({ error: "ids must be a non-empty array." });
           return;
