@@ -43,6 +43,82 @@ export function mountOperatorRoutes(app: Express): void {
   );
 
   app.post(
+    "/operators/approvals/bulk",
+    requireOperatorAuth,
+    (req: Request, res: Response) => {
+      try {
+        if (req.body?.confirm !== true) {
+          res.status(400).json({ error: 'Pass {"confirm":true} to confirm.' });
+          return;
+        }
+        const action = String(req.body?.action || "");
+        if (action !== "approve" && action !== "deny") {
+          res.status(400).json({ error: 'action must be "approve" or "deny".' });
+          return;
+        }
+        const ids = Array.isArray(req.body?.ids)
+          ? [...new Set(req.body.ids.map((x: unknown) => String(x || "").trim()).filter(Boolean))]
+          : [];
+        if (!ids.length) {
+          res.status(400).json({ error: "ids must be a non-empty array." });
+          return;
+        }
+        if (ids.length > 50) {
+          res.status(400).json({ error: "Bulk limit is 50 approvals per request." });
+          return;
+        }
+        const token = bearerToken(req)!;
+        const succeeded: Array<Record<string, string>> = [];
+        const failed: Array<{ id: string; error: string }> = [];
+        for (const id of ids) {
+          try {
+            const approval =
+              action === "approve"
+                ? approveOperatorApproval(id, token)
+                : denyOperatorApproval(id, token);
+            writeAudit({
+              ts: new Date().toISOString(),
+              sessionId: "operator-ui",
+              principalId: "operator-ui",
+              tool: action === "approve" ? "operator.approve" : "operator.deny",
+              decision: "allow",
+              meta: {
+                approvalId: approval.id,
+                module: approval.module,
+                bulk: true,
+              },
+            });
+            succeeded.push({
+              approvalId: approval.id,
+              module: approval.module,
+              action: approval.action,
+              status: approval.status,
+            });
+          } catch (err) {
+            failed.push({
+              id,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+        res.json({
+          action,
+          succeeded,
+          failed,
+          next:
+            action === "approve" && succeeded.length
+              ? "Tell the AI agent to apply approved changes with their approvalIds."
+              : undefined,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const status = /invalid/i.test(msg) ? 401 : 400;
+        res.status(status).json({ error: msg });
+      }
+    }
+  );
+
+  app.post(
     "/operators/approvals/:id/approve",
     requireOperatorAuth,
     (req: Request, res: Response) => {
